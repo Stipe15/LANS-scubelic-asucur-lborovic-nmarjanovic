@@ -35,11 +35,6 @@ interface ProfilePageProps {
 const PROVIDERS = [
   { value: 'google', label: 'Google Gemini' },
   { value: 'groq', label: 'Groq' },
-  { value: 'openai', label: 'OpenAI' },
-  { value: 'anthropic', label: 'Anthropic' },
-  { value: 'mistral', label: 'Mistral' },
-  { value: 'perplexity', label: 'Perplexity' },
-  { value: 'grok', label: 'Grok' },
 ];
 
 export default function ProfilePage({ theme }: ProfilePageProps) {
