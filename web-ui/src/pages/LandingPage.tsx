@@ -95,12 +95,12 @@ export default function LandingPage({ theme }) {
 
   const glassCardClass = theme === 'dark'
     ? 'glass-card'
-    : 'bg-white/60 backdrop-blur-md border border-gray-200/50 shadow-sm';
+    : 'glass-card-light';
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-navy-950 text-white' : 'bg-gray-50 text-gray-800'}`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-navy-950 text-white' : 'bg-slate-50 text-black'}`}>
       {/* Background effects */}
-      <div className={`fixed inset-0 ${theme === 'dark' ? 'bg-gradient-to-br from-primary-500/5 via-transparent to-accent-500/5' : 'bg-gray-100'} pointer-events-none`} />
+      <div className={`fixed inset-0 ${theme === 'dark' ? 'bg-gradient-to-br from-primary-500/5 via-transparent to-accent-500/5' : 'bg-slate-100/50'} pointer-events-none`} />
       {theme === 'dark' && (
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute -top-1/2 -right-1/2 w-full h-full bg-gradient-radial from-primary-500/10 to-transparent blur-3xl" />
@@ -109,7 +109,7 @@ export default function LandingPage({ theme }) {
       )}
 
       {/* Navigation */}
-      <nav className={`relative border-b ${theme === 'dark' ? 'border-navy-800/50 bg-navy-900/50' : 'border-gray-200/50 bg-white/50'} backdrop-blur-xl`}>
+      <nav className={`relative border-b ${theme === 'dark' ? 'border-navy-800/50 bg-navy-900/50' : 'border-slate-200/60 bg-white/50'} backdrop-blur-xl`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">

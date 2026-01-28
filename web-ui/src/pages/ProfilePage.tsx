@@ -328,25 +328,29 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
 
   const glassCardClass = theme === 'dark'
     ? 'glass-card'
-    : 'bg-white/60 backdrop-blur-md border border-gray-200/50 shadow-sm';
+    : 'glass-card-light';
 
   const inputClass = theme === 'dark'
     ? 'input-field'
-    : 'input-field bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500';
+    : 'input-field-light';
 
-  const textClass = theme === 'dark' ? 'text-navy-100' : 'text-gray-900';
-  const mutedTextClass = theme === 'dark' ? 'text-navy-400' : 'text-gray-500';
-  const bgClass = theme === 'dark' ? 'bg-navy-950' : 'bg-gray-50';
-  const cardBgClass = theme === 'dark' ? 'bg-navy-900/50' : 'bg-white/80';
+  const textClass = theme === 'dark' ? 'text-navy-100' : 'text-black';
+  const mutedTextClass = theme === 'dark' ? 'text-navy-400' : 'text-slate-500';
+  const bgClass = theme === 'dark' ? 'bg-navy-950' : 'light-mode-bg';
+  const cardBgClass = theme === 'dark' ? 'bg-navy-900/50' : 'bg-white/50';
 
   return (
     <div className={`min-h-screen ${bgClass} px-4 py-8`}>
       <div className="max-w-4xl mx-auto">
+        {/* Background gradient for light mode */}
+        {theme === 'light' && (
+          <div className="fixed inset-0 bg-slate-100/50 pointer-events-none -z-10" />
+        )}
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link
             to="/app"
-            className={`inline-flex items-center gap-2 ${mutedTextClass} hover:text-primary-500 transition-colors`}
+            className={`inline-flex items-center gap-2 ${mutedTextClass} hover:text-primary-500 transition-colors font-medium`}
           >
             <ArrowLeft className="w-4 h-4" />
             Back to Dashboard
@@ -354,7 +358,7 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
 
           <button
             onClick={handleLogout}
-            className={`inline-flex items-center gap-2 ${mutedTextClass} hover:text-red-500 transition-colors`}
+            className={`inline-flex items-center gap-2 ${mutedTextClass} hover:text-red-500 transition-colors font-medium`}
           >
             <LogOut className="w-4 h-4" />
             Logout
@@ -753,11 +757,11 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
         </div>
 
         {/* Security Note */}
-        <div className={`mt-6 p-4 rounded-xl border ${theme === 'dark' ? 'border-navy-700/50 bg-navy-900/30' : 'border-gray-200 bg-gray-50'}`}>
+        <div className={`mt-6 p-4 rounded-xl border ${theme === 'dark' ? 'border-navy-700/50 bg-navy-900/30' : 'border-slate-200 bg-slate-100/50'}`}>
           <div className="flex items-start gap-3">
             <Shield className={`w-5 h-5 ${mutedTextClass} flex-shrink-0 mt-0.5`} />
             <div className={`text-sm ${mutedTextClass}`}>
-              <p className="font-medium mb-1">Security Note</p>
+              <p className="font-medium mb-1 text-black dark:text-navy-300">Security Note</p>
               <p>
                 Your API keys are encrypted using AES-256 before storage and are never exposed in API responses.
                 Only you can decrypt and use your keys through authenticated requests.
