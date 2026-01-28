@@ -118,3 +118,27 @@ export interface APIKeyCreateRequest {
   api_key: string;
   key_name?: string;
 }
+
+export interface UserBrand {
+  id: number;
+  brand_name: string;
+  is_mine: boolean;
+  created_at: string;
+}
+
+export interface UserIntent {
+  id: number;
+  intent_alias: string;
+  prompt: string;
+  created_at: string;
+}
+
+export interface BrandCreateRequest {
+  brand_name: string;
+  is_mine: boolean;
+}
+
+export interface IntentCreateRequest {
+  intent_alias: string;
+  prompt: string;
+}

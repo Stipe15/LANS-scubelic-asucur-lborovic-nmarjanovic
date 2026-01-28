@@ -45,8 +45,17 @@ body {
   font-family: 'Inter', system-ui, sans-serif;
 }
 
+/* Light mode softened defaults */
+.light-mode-bg {
+  @apply bg-slate-50 text-slate-900;
+}
+
 .glass-card {
   @apply bg-navy-900/50 backdrop-blur-xl border border-navy-800/50 rounded-2xl;
+}
+
+.glass-card-light {
+  @apply bg-white/70 backdrop-blur-md border border-slate-200/60 shadow-sm rounded-2xl;
 }
 
 .btn-primary {
@@ -60,13 +69,18 @@ body {
          transition-all duration-200 border border-navy-700 hover:border-navy-600;
 }
 
+.btn-secondary-light {
+  @apply px-6 py-3 bg-white hover:bg-slate-50 text-slate-700 font-medium rounded-xl
+         transition-all duration-200 border border-slate-200 shadow-sm hover:border-slate-300;
+}
+
 .btn-ghost {
   @apply px-4 py-2 text-navy-400 hover:text-navy-200 hover:bg-navy-800/50
          font-medium rounded-lg transition-all duration-200;
 }
 
-.btn-danger {
-  @apply px-4 py-2 text-primary-400 hover:text-primary-300 hover:bg-primary-500/10
+.btn-ghost-light {
+  @apply px-4 py-2 text-slate-500 hover:text-slate-900 hover:bg-slate-100
          font-medium rounded-lg transition-all duration-200;
 }
 
@@ -76,8 +90,18 @@ body {
          focus:ring-2 focus:ring-primary-500/20 transition-all duration-200;
 }
 
+.input-field-light {
+  @apply w-full px-4 py-3 bg-white border border-slate-200 rounded-xl
+         text-slate-900 placeholder-slate-400 focus:outline-none focus:border-primary-500
+         focus:ring-2 focus:ring-primary-500/10 transition-all duration-200 shadow-sm;
+}
+
 .label {
   @apply block text-sm font-medium text-navy-300 mb-2;
+}
+
+.label-light {
+  @apply block text-sm font-medium text-slate-600 mb-2;
 }
 
 .tag {

@@ -32,7 +32,7 @@ from ..utils.time import utc_timestamp
 logger = logging.getLogger(__name__)
 
 # Current schema version - increment when migrations are added
-CURRENT_SCHEMA_VERSION = 7
+CURRENT_SCHEMA_VERSION = 8
 
 
 def init_db_if_needed(db_path: str) -> None:
@@ -198,6 +198,8 @@ def apply_migrations(
                 _migrate_to_v6(conn)
             elif target_version == 7:
                 _migrate_to_v7(conn)
+            elif target_version == 8:
+                _migrate_to_v8(conn)
             # Future migrations go here:
             # elif target_version == 8:
             #     _migrate_to_v8(conn)
@@ -795,6 +797,67 @@ def _migrate_to_v7(conn: sqlite3.Connection) -> None:
     """)
 
     logger.debug("Created refresh_tokens table and indexes (schema v7 part 3)")
+
+
+def _migrate_to_v8(conn: sqlite3.Connection) -> None:
+    """
+    Migrate database schema to version 8.
+
+    Adds user-specific configuration tables:
+    - user_brands: User's owned brands and competitors
+    - user_intents: User's saved search queries/intents
+
+    This allows each user to have their own personalized dashboard configuration
+    persisted in the database.
+
+    Args:
+        conn: Active SQLite database connection in transaction
+    """
+    # Create user_brands table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_brands (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            brand_name TEXT NOT NULL,
+            is_mine INTEGER NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE(user_id, brand_name)
+        )
+    """)
+
+    # Create indexes for brand lookups
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_user_brands_user
+        ON user_brands(user_id)
+    """)
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_user_brands_mine
+        ON user_brands(is_mine)
+    """)
+
+    # Create user_intents table
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_intents (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            intent_alias TEXT NOT NULL,
+            prompt TEXT NOT NULL,
+            created_at TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+            UNIQUE(user_id, intent_alias)
+        )
+    """)
+
+    # Create indexes for intent lookups
+    conn.execute("""
+        CREATE INDEX IF NOT EXISTS idx_user_intents_user
+        ON user_intents(user_id)
+    """)
+
+    logger.debug("Created user_brands and user_intents tables (schema v8)")
 
 
 # ============================================================================
@@ -2247,3 +2310,186 @@ def cleanup_expired_refresh_tokens(conn: sqlite3.Connection) -> int:
         (timestamp,),
     )
     return cursor.rowcount
+
+
+# ============================================================================
+# User Brands CRUD Operations
+# ============================================================================
+
+
+def create_user_brand(
+    conn: sqlite3.Connection,
+    user_id: int,
+    brand_name: str,
+    is_mine: bool,
+) -> int:
+    """
+    Create a new user brand.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: User ID who owns this brand
+        brand_name: Name of the brand
+        is_mine: True if it's the user's brand, False if competitor
+
+    Returns:
+        The new brand record ID
+
+    Raises:
+        sqlite3.IntegrityError: If brand already exists for user
+    """
+    timestamp = utc_timestamp()
+    is_mine_int = 1 if is_mine else 0
+    
+    cursor = conn.execute(
+        """
+        INSERT INTO user_brands (user_id, brand_name, is_mine, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (user_id, brand_name, is_mine_int, timestamp, timestamp),
+    )
+    return cursor.lastrowid
+
+
+def get_user_brands(conn: sqlite3.Connection, user_id: int) -> list[dict]:
+    """
+    Get all brands for a user.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: User ID to look up
+
+    Returns:
+        List of brand dicts
+    """
+    cursor = conn.execute(
+        """
+        SELECT id, brand_name, is_mine, created_at, updated_at
+        FROM user_brands
+        WHERE user_id = ?
+        ORDER BY is_mine DESC, brand_name ASC
+        """,
+        (user_id,),
+    )
+    return [
+        {
+            "id": row[0],
+            "brand_name": row[1],
+            "is_mine": bool(row[2]),
+            "created_at": row[3],
+            "updated_at": row[4],
+        }
+        for row in cursor.fetchall()
+    ]
+
+
+def delete_user_brand(
+    conn: sqlite3.Connection, brand_id: int, user_id: int
+) -> bool:
+    """
+    Delete a user brand.
+
+    Args:
+        conn: Active SQLite database connection
+        brand_id: Brand record ID
+        user_id: User ID (for ownership verification)
+
+    Returns:
+        True if deleted, False if not found or not owned by user
+    """
+    cursor = conn.execute(
+        "DELETE FROM user_brands WHERE id = ? AND user_id = ?",
+        (brand_id, user_id),
+    )
+    return cursor.rowcount > 0
+
+
+# ============================================================================
+# User Intents CRUD Operations
+# ============================================================================
+
+
+def create_user_intent(
+    conn: sqlite3.Connection,
+    user_id: int,
+    intent_alias: str,
+    prompt: str,
+) -> int:
+    """
+    Create a new user intent.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: User ID who owns this intent
+        intent_alias: Alias/ID for the intent (e.g., "email-warmup")
+        prompt: The actual prompt text
+
+    Returns:
+        The new intent record ID
+
+    Raises:
+        sqlite3.IntegrityError: If intent alias already exists for user
+    """
+    timestamp = utc_timestamp()
+    
+    cursor = conn.execute(
+        """
+        INSERT INTO user_intents (user_id, intent_alias, prompt, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (user_id, intent_alias, prompt, timestamp, timestamp),
+    )
+    return cursor.lastrowid
+
+
+def get_user_intents(conn: sqlite3.Connection, user_id: int) -> list[dict]:
+    """
+    Get all intents for a user.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: User ID to look up
+
+    Returns:
+        List of intent dicts
+    """
+    cursor = conn.execute(
+        """
+        SELECT id, intent_alias, prompt, created_at, updated_at
+        FROM user_intents
+        WHERE user_id = ?
+        ORDER BY intent_alias ASC
+        """,
+        (user_id,),
+    )
+    return [
+        {
+            "id": row[0],
+            "intent_alias": row[1],
+            "prompt": row[2],
+            "created_at": row[3],
+            "updated_at": row[4],
+        }
+        for row in cursor.fetchall()
+    ]
+
+
+def delete_user_intent(
+    conn: sqlite3.Connection, intent_id: int, user_id: int
+) -> bool:
+    """
+    Delete a user intent.
+
+    Args:
+        conn: Active SQLite database connection
+        intent_id: Intent record ID
+        user_id: User ID (for ownership verification)
+
+    Returns:
+        True if deleted, False if not found or not owned by user
+    """
+    cursor = conn.execute(
+        "DELETE FROM user_intents WHERE id = ? AND user_id = ?",
+        (intent_id, user_id),
+    )
+    return cursor.rowcount > 0

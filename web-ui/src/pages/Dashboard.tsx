@@ -30,8 +30,9 @@ import {
   User,
   LogOut,
   Key,
+  Building2,
 } from 'lucide-react';
-import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig } from '../types.ts';
+import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig, UserBrand, UserIntent } from '../types.ts';
 import { GEMINI_MODELS, GROQ_MODELS } from '../types.ts';
 import yaml from 'js-yaml';
 import { useAuth } from '../auth/AuthContext';
@@ -88,32 +89,32 @@ const StatsComparison = ({ results, theme }: { results: any, theme: string }) =>
   
   const glassCardClass = theme === 'dark'
     ? 'glass-card'
-    : 'bg-white/60 backdrop-blur-md border border-gray-200/50 shadow-sm';
+    : 'glass-card-light';
 
   return (
     <div className={`${glassCardClass} p-6 mt-8`}>
-      <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-gray-800'} mb-4`}>Model Comparison</h3>
+      <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'} mb-4`}>Model Comparison</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div>
           <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-primary-300' : 'text-primary-500'} mb-3`}>Google Gemini</h4>
-          <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-gray-600'}`}>
-            <div className="flex justify-between"><span>Detected Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stats.google.totalMentions}</span></div>
-            <div className="flex justify-between"><span>My Brand Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stats.google.myBrandMentions}</span></div>
-            <div className="flex justify-between"><span>#1 Ranks for My Brand:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stats.google.myBrandRank1Mentions}</span></div>
-            <div className="flex justify-between"><span>Avg. My Brand Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{avgRank(stats.google.myBrandRanks)}</span></div>
-            <div className="flex justify-between"><span>Competitor Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stats.google.competitorMentions}</span></div>
-            <div className="flex justify-between"><span>Avg. Competitor Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{avgRank(stats.google.competitorRanks)}</span></div>
+          <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
+            <div className="flex justify-between"><span>Detected Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.google.totalMentions}</span></div>
+            <div className="flex justify-between"><span>My Brand Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.google.myBrandMentions}</span></div>
+            <div className="flex justify-between"><span>#1 Ranks for My Brand:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.google.myBrandRank1Mentions}</span></div>
+            <div className="flex justify-between"><span>Avg. My Brand Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{avgRank(stats.google.myBrandRanks)}</span></div>
+            <div className="flex justify-between"><span>Competitor Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.google.competitorMentions}</span></div>
+            <div className="flex justify-between"><span>Avg. Competitor Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{avgRank(stats.google.competitorRanks)}</span></div>
           </div>
         </div>
         <div>
           <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-accent-300' : 'text-accent-500'} mb-3`}>Groq</h4>
-          <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-gray-600'}`}>
-            <div className="flex justify-between"><span>Detected Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stats.groq.totalMentions}</span></div>
-            <div className="flex justify-between"><span>My Brand Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stats.groq.myBrandMentions}</span></div>
-            <div className="flex justify-between"><span>#1 Ranks for My Brand:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stats.groq.myBrandRank1Mentions}</span></div>
-            <div className="flex justify-between"><span>Avg. My Brand Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{avgRank(stats.groq.myBrandRanks)}</span></div>
-            <div className="flex justify-between"><span>Competitor Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{stats.groq.competitorMentions}</span></div>
-            <div className="flex justify-between"><span>Avg. Competitor Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{avgRank(stats.groq.competitorRanks)}</span></div>
+          <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
+            <div className="flex justify-between"><span>Detected Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.groq.totalMentions}</span></div>
+            <div className="flex justify-between"><span>My Brand Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.groq.myBrandMentions}</span></div>
+            <div className="flex justify-between"><span>#1 Ranks for My Brand:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.groq.myBrandRank1Mentions}</span></div>
+            <div className="flex justify-between"><span>Avg. My Brand Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{avgRank(stats.groq.myBrandRanks)}</span></div>
+            <div className="flex justify-between"><span>Competitor Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.groq.competitorMentions}</span></div>
+            <div className="flex justify-between"><span>Avg. Competitor Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{avgRank(stats.groq.competitorRanks)}</span></div>
           </div>
         </div>
       </div>
@@ -145,25 +146,25 @@ const TokenUsageStats = ({ results, selectedProvider, selectedGoogleModel, selec
 
   const glassCardClass = theme === 'dark'
     ? 'glass-card'
-    : 'bg-white/60 backdrop-blur-md border border-gray-200/50 shadow-sm';
+    : 'glass-card-light';
 
   return (
     <div className={`${glassCardClass} p-6 mt-8`}>
-      <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-gray-800'} mb-4`}>Token Usage</h3>
+      <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'} mb-4`}>Token Usage</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {(selectedProvider === 'google' || selectedProvider === 'both') && (
           <div>
             <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-primary-300' : 'text-primary-500'} mb-3`}>Google Gemini ({selectedGoogleModel})</h4>
-            <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-gray-600'}`}>
-              <div className="flex justify-between"><span>Tokens Used:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{modelInfo.google.used}</span></div>
+            <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
+              <div className="flex justify-between"><span>Tokens Used:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{modelInfo.google.used}</span></div>
             </div>
           </div>
         )}
         {(selectedProvider === 'groq' || selectedProvider === 'both') && (
           <div>
             <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-accent-300' : 'text-accent-500'} mb-3`}>Groq ({selectedGroqModel})</h4>
-            <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-gray-600'}`}>
-              <div className="flex justify-between"><span>Tokens Used:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{modelInfo.groq.used}</span></div>
+            <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
+              <div className="flex justify-between"><span>Tokens Used:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{modelInfo.groq.used}</span></div>
             </div>
           </div>
         )}
@@ -230,7 +231,7 @@ const FormattedAnswer = ({ text, mentions = [], theme }: { text: string; mention
       {sections.map((section, sIdx) => {
         if (section.startsWith('### ')) {
           return (
-            <h4 key={sIdx} className={`text-lg font-bold ${theme === 'dark' ? 'text-navy-100' : 'text-gray-900'} mt-6 mb-3 flex items-center gap-3`}>
+            <h4 key={sIdx} className={`text-lg font-bold ${theme === 'dark' ? 'text-navy-100' : 'text-black'} mt-6 mb-3 flex items-center gap-3`}>
               <span className={`h-px flex-1 bg-gradient-to-r ${theme === 'dark' ? 'from-primary-500/50' : 'from-primary-300/50'} to-transparent`}></span>
               <span className={`${theme === 'dark' ? 'text-primary-200' : 'text-primary-600'}`}>{processText(section.slice(4))}</span>
               <span className={`h-px flex-1 bg-gradient-to-l ${theme === 'dark' ? 'from-primary-500/50' : 'from-primary-300/50'} to-transparent`}></span>
@@ -248,20 +249,20 @@ const FormattedAnswer = ({ text, mentions = [], theme }: { text: string; mention
                 const match = line.match(/^\s*([-*•]|\d+\.)\s*(.*)/);
                 if (match) {
                   return (
-                    <li key={lIdx} className={`flex gap-3 text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-700'}`}>
+                    <li key={lIdx} className={`flex gap-3 text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
                       <span className={`${theme === 'dark' ? 'text-primary-400' : 'text-primary-500'} font-bold min-w-[12px] flex justify-center`}>{match[1].length > 1 ? match[1] : '•'}</span>
                       <span className="flex-1">{processText(match[2])}</span>
                     </li>
                   );
                 }
-                return <p key={lIdx} className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-700'} ml-6`}>{processText(line)}</p>;
+                return <p key={lIdx} className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-black'} ml-6`}>{processText(line)}</p>;
               })}
             </ul>
           );
         }
 
         return (
-          <p key={sIdx} className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-700'} leading-relaxed whitespace-pre-wrap`}>
+          <p key={sIdx} className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-black'} leading-relaxed whitespace-pre-wrap`}>
             {processText(section)}
           </p>
         );
@@ -282,22 +283,30 @@ export default function Dashboard({ theme }) {
   };
 
   const [savedKeys, setSavedKeys] = useState<any[]>([]);
+  const [savedBrands, setSavedBrands] = useState<UserBrand[]>([]);
+  const [savedIntents, setSavedIntents] = useState<UserIntent[]>([]);
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false);
+  const [showCompetitorDropdown, setShowCompetitorDropdown] = useState(false);
+  const [showIntentDropdown, setShowIntentDropdown] = useState(false);
 
   useEffect(() => {
-    const fetchSavedKeys = async () => {
+    const fetchUserData = async () => {
       if (!token) return;
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/api-keys`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          setSavedKeys(await response.json());
-        }
+        const [keysRes, brandsRes, intentsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/auth/api-keys`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/user/brands`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/user/intents`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        ]);
+
+        if (keysRes.ok) setSavedKeys(await keysRes.json());
+        if (brandsRes.ok) setSavedBrands(await brandsRes.json());
+        if (intentsRes.ok) setSavedIntents(await intentsRes.json());
       } catch (err) {
-        console.error('Failed to fetch saved keys', err);
+        console.error('Failed to fetch user data', err);
       }
     };
-    fetchSavedKeys();
+    fetchUserData();
   }, [token]);
 
   const loadSavedKey = async (provider: string, keyName: string | null) => {
@@ -315,7 +324,9 @@ export default function Dashboard({ theme }) {
       
       if (response.ok) {
         const data = await response.json();
-        setApiKeys(prev => ({ ...prev, [provider]: data.api_key }));
+        if (data.api_key) {
+          setApiKeys(prev => ({ ...prev, [providerLower]: data.api_key }));
+        }
       }
     } catch (err) {
       console.error('Failed to load API key', err);
@@ -636,27 +647,27 @@ export default function Dashboard({ theme }) {
 
   const glassCardClass = theme === 'dark'
     ? 'glass-card'
-    : 'bg-white/60 backdrop-blur-md border border-gray-200/50 shadow-sm';
+    : 'glass-card-light';
 
   const inputClass = theme === 'dark'
     ? 'input-field'
-    : 'input-field bg-white border-gray-300 text-gray-900 placeholder-gray-400 focus:ring-primary-500 focus:border-primary-500';
+    : 'input-field-light';
 
   const btnGhostClass = theme === 'dark'
     ? 'btn-ghost'
-    : 'btn-ghost text-gray-600 hover:bg-gray-100 hover:text-gray-900';
+    : 'btn-ghost-light';
 
   const btnSecondaryClass = theme === 'dark'
     ? 'btn-secondary'
-    : 'btn-secondary bg-gray-100 text-gray-700 hover:bg-gray-200';
+    : 'btn-secondary-light';
 
   return (
-    <div className={`min-h-screen ${theme === 'dark' ? 'bg-navy-950 text-white' : 'bg-gray-50 text-gray-800'}`}>
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-navy-950 text-white' : 'light-mode-bg'}`}>
       {/* Background gradient */}
-      <div className={`fixed inset-0 ${theme === 'dark' ? 'bg-gradient-to-br from-primary-500/5 via-transparent to-accent-500/5' : 'bg-gray-100'} pointer-events-none`} />
+      <div className={`fixed inset-0 ${theme === 'dark' ? 'bg-gradient-to-br from-primary-500/5 via-transparent to-accent-500/5' : 'bg-slate-100/50'} pointer-events-none`} />
 
       {/* Header */}
-      <header className={`relative z-40 border-b ${theme === 'dark' ? 'border-navy-800/50 bg-navy-900/50' : 'border-gray-200 bg-white/80'} backdrop-blur-xl`}>
+      <header className={`relative z-40 border-b ${theme === 'dark' ? 'border-navy-800/50 bg-navy-900/50' : 'border-slate-200 bg-white/80'} backdrop-blur-xl`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -799,7 +810,7 @@ export default function Dashboard({ theme }) {
 
                 {selectedProvider !== 'both' ? (
                   <div>
-                    <label className="label">{selectedProvider === 'google' ? 'Gemini' : 'Groq'} API Key</label>
+                    <label className={theme === 'dark' ? 'label' : 'label-light'}>{selectedProvider === 'google' ? 'Gemini' : 'Groq'} API Key</label>
                     <div className="relative">
                       <input
                         type={showApiKey ? 'text' : 'password'}
@@ -839,7 +850,7 @@ export default function Dashboard({ theme }) {
                                   setShowKeyDropdown(prev => ({ ...prev, [selectedProvider]: false }));
                                 }}
                                 className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
-                                  theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'
+                                  theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-slate-100 text-black'
                                 }`}
                               >
                                 {key.key_name || 'Default Key'}
@@ -879,7 +890,7 @@ export default function Dashboard({ theme }) {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="label">Google Gemini API Key</label>
+                      <label className={theme === 'dark' ? 'label' : 'label-light'}>Google Gemini API Key</label>
                       <input
                         type="password"
                         value={apiKeys.google}
@@ -923,7 +934,7 @@ export default function Dashboard({ theme }) {
                       )}
                     </div>
                     <div>
-                      <label className="label">Groq API Key</label>
+                      <label className={theme === 'dark' ? 'label' : 'label-light'}>Groq API Key</label>
                       <input
                         type="password"
                         value={apiKeys.groq}
@@ -971,7 +982,7 @@ export default function Dashboard({ theme }) {
 
                 {selectedProvider !== 'both' ? (
                   <div>
-                    <label className="label">Model</label>
+                    <label className={theme === 'dark' ? 'label' : 'label-light'}>Model</label>
                     <div className="relative">
                       <select
                         value={selectedModel}
@@ -993,7 +1004,7 @@ export default function Dashboard({ theme }) {
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="label">Google Model</label>
+                      <label className={theme === 'dark' ? 'label' : 'label-light'}>Google Model</label>
                       <select
                         value={selectedGoogleModel}
                         onChange={(e) => setSelectedGoogleModel(e.target.value)}
@@ -1005,7 +1016,7 @@ export default function Dashboard({ theme }) {
                       </select>
                     </div>
                     <div>
-                      <label className="label">Groq Model</label>
+                      <label className={theme === 'dark' ? 'label' : 'label-light'}>Groq Model</label>
                       <select
                         value={selectedGroqModel}
                         onChange={(e) => setSelectedGroqModel(e.target.value)}
@@ -1045,9 +1056,52 @@ export default function Dashboard({ theme }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* My Brands */}
                   <div>
-                    <label className="label flex items-center gap-2">
-                      <span className="tag-primary text-xs">YOUR BRANDS</span>
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="label flex items-center gap-2 mb-0">
+                        <span className="tag-primary text-xs">YOUR BRANDS</span>
+                      </label>
+                      
+                      {savedBrands.some(b => b.is_mine) && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                          >
+                            <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                          </button>
+                          
+                          {showBrandDropdown && (
+                            <div className={`absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-lg z-20 ${
+                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                            }`}>
+                              {savedBrands.filter(b => b.is_mine).map(brand => (
+                                <button
+                                  key={brand.id}
+                                  onClick={() => {
+                                    if (!myBrands.includes(brand.brand_name)) {
+                                      // If current input is empty, replace it, otherwise append
+                                      const newBrands = [...myBrands];
+                                      if (newBrands.length === 1 && newBrands[0] === '') {
+                                        newBrands[0] = brand.brand_name;
+                                      } else {
+                                        newBrands.push(brand.brand_name);
+                                      }
+                                      setMyBrands(newBrands);
+                                    }
+                                    setShowBrandDropdown(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
+                                    theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-slate-100 text-black'
+                                  }`}
+                                >
+                                  {brand.brand_name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       {myBrands.map((brand, index) => (
                         <div key={index} className="flex gap-2">
@@ -1076,9 +1130,51 @@ export default function Dashboard({ theme }) {
 
                   {/* Competitors */}
                   <div>
-                    <label className="label flex items-center gap-2">
-                      <span className="tag-accent text-xs">COMPETITORS</span>
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="label flex items-center gap-2 mb-0">
+                        <span className="tag-accent text-xs">COMPETITORS</span>
+                      </label>
+                      
+                      {savedBrands.some(b => !b.is_mine) && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
+                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                          >
+                            <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                          </button>
+                          
+                          {showCompetitorDropdown && (
+                            <div className={`absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-lg z-20 ${
+                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                            }`}>
+                              {savedBrands.filter(b => !b.is_mine).map(brand => (
+                                <button
+                                  key={brand.id}
+                                  onClick={() => {
+                                    if (!competitors.includes(brand.brand_name)) {
+                                      const newCompetitors = [...competitors];
+                                      if (newCompetitors.length === 1 && newCompetitors[0] === '') {
+                                        newCompetitors[0] = brand.brand_name;
+                                      } else {
+                                        newCompetitors.push(brand.brand_name);
+                                      }
+                                      setCompetitors(newCompetitors);
+                                    }
+                                    setShowCompetitorDropdown(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
+                                    theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-slate-100 text-black'
+                                  }`}
+                                >
+                                  {brand.brand_name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       {competitors.map((competitor, index) => (
                         <div key={index} className="flex gap-2">
@@ -1112,9 +1208,56 @@ export default function Dashboard({ theme }) {
 
               {/* Intents Section */}
               <section className={`${glassCardClass} p-6`}>
-                <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare className="w-5 h-5 text-green-400" />
-                  <h2 className="section-title">Search Queries (Intents)</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-green-400" />
+                    <h2 className="section-title">Search Queries (Intents)</h2>
+                  </div>
+                  
+                  {savedIntents.length > 0 && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowIntentDropdown(!showIntentDropdown)}
+                        className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                      >
+                        <MessageSquare className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                      </button>
+                      
+                      {showIntentDropdown && (
+                        <div className={`absolute right-0 top-full mt-1 w-64 rounded-lg border shadow-lg z-20 ${
+                          theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                        }`}>
+                          {savedIntents.map(intent => (
+                            <button
+                              key={intent.id}
+                              onClick={() => {
+                                // Add if not exists by checking intent_alias against id
+                                const exists = intents.some(i => i.id === intent.intent_alias);
+                                if (!exists) {
+                                  const newIntents = [...intents];
+                                  if (newIntents.length === 1 && newIntents[0].id === '' && newIntents[0].prompt === '') {
+                                    newIntents[0] = { id: intent.intent_alias, prompt: intent.prompt };
+                                  } else {
+                                    newIntents.push({ id: intent.intent_alias, prompt: intent.prompt });
+                                  }
+                                  setIntents(newIntents);
+                                }
+                                setShowIntentDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
+                                theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-black text-gray-900'
+                              }`}
+                            >
+                              <div className="font-medium">{intent.intent_alias}</div>
+                              <div className={`text-xs truncate ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                                {intent.prompt}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-600'} mb-4`}>
