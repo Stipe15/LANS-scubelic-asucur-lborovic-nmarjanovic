@@ -14,7 +14,10 @@ import {
   LogOut,
   Shield,
   Calendar,
+  Building2,
+  Search,
 } from 'lucide-react';
+import { UserBrand, UserIntent } from '../types';
 
 // API base URL - same pattern as Dashboard
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
@@ -54,9 +57,23 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
   const [showNewKey, setShowNewKey] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Brands & Intents state
+  const [brands, setBrands] = useState<UserBrand[]>([]);
+  const [intents, setIntents] = useState<UserIntent[]>([]);
+  const [showAddBrandForm, setShowAddBrandForm] = useState(false);
+  const [showAddIntentForm, setShowAddIntentForm] = useState(false);
+  
+  const [newBrandName, setNewBrandName] = useState('');
+  const [newBrandIsMine, setNewBrandIsMine] = useState(true);
+  
+  const [newIntentAlias, setNewIntentAlias] = useState('');
+  const [newIntentPrompt, setNewIntentPrompt] = useState('');
+
   // Fetch API keys on mount
   useEffect(() => {
     fetchApiKeys();
+    fetchBrands();
+    fetchIntents();
   }, [token]);
 
   const fetchApiKeys = async () => {
@@ -79,6 +96,34 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
       setError('Failed to connect to server');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchBrands = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/brands`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setBrands(await response.json());
+      }
+    } catch (err) {
+      console.error('Failed to fetch brands', err);
+    }
+  };
+
+  const fetchIntents = async () => {
+    if (!token) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/intents`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        setIntents(await response.json());
+      }
+    } catch (err) {
+      console.error('Failed to fetch intents', err);
     }
   };
 
@@ -147,6 +192,123 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
       } else {
         const data = await response.json();
         setError(data.detail || 'Failed to delete API key');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    }
+  };
+
+  const handleAddBrand = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!newBrandName.trim()) {
+      setError('Please enter a brand name');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/brands`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          brand_name: newBrandName,
+          is_mine: newBrandIsMine,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess('Brand added successfully');
+        setNewBrandName('');
+        setShowAddBrandForm(false);
+        await fetchBrands();
+      } else {
+        const data = await response.json();
+        setError(data.detail || 'Failed to add brand');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteBrand = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this brand?')) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/brands/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        await fetchBrands();
+        setSuccess('Brand deleted successfully');
+      } else {
+        setError('Failed to delete brand');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    }
+  };
+
+  const handleAddIntent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccess('');
+
+    if (!newIntentAlias.trim() || !newIntentPrompt.trim()) {
+      setError('Please fill in all fields');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/intents`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          intent_alias: newIntentAlias,
+          prompt: newIntentPrompt,
+        }),
+      });
+
+      if (response.ok) {
+        setSuccess('Intent added successfully');
+        setNewIntentAlias('');
+        setNewIntentPrompt('');
+        setShowAddIntentForm(false);
+        await fetchIntents();
+      } else {
+        const data = await response.json();
+        setError(data.detail || 'Failed to add intent');
+      }
+    } catch (err) {
+      setError('Failed to connect to server');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDeleteIntent = async (id: number) => {
+    if (!confirm('Are you sure you want to delete this intent?')) return;
+    try {
+      const response = await fetch(`${API_BASE_URL}/user/intents/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        await fetchIntents();
+        setSuccess('Intent deleted successfully');
+      } else {
+        setError('Failed to delete intent');
       }
     } catch (err) {
       setError('Failed to connect to server');
@@ -403,6 +565,191 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
               ))}
             </div>
           )}
+        </div>
+
+        {/* Brands Section */}
+        <div className={`${glassCardClass} p-6 rounded-2xl mb-8`}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Building2 className="w-6 h-6 text-primary-500" />
+              <h2 className={`text-xl font-semibold ${textClass}`}>Brands & Competitors</h2>
+            </div>
+            {!showAddBrandForm && (
+              <button
+                onClick={() => setShowAddBrandForm(true)}
+                className="btn-primary flex items-center gap-2 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Add Brand
+              </button>
+            )}
+          </div>
+
+          {/* Add Brand Form */}
+          {showAddBrandForm && (
+            <form onSubmit={handleAddBrand} className={`${cardBgClass} p-4 rounded-xl mb-6 border border-navy-700/50`}>
+              <h3 className={`font-medium ${textClass} mb-4`}>Add New Brand</h3>
+              <div className="grid gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textClass} mb-2`}>Brand Name</label>
+                  <input
+                    type="text"
+                    value={newBrandName}
+                    onChange={(e) => setNewBrandName(e.target.value)}
+                    placeholder="e.g., My Company Inc."
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textClass} mb-2`}>Type</label>
+                  <div className="flex gap-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={newBrandIsMine}
+                        onChange={() => setNewBrandIsMine(true)}
+                        className="form-radio text-primary-500"
+                        disabled={isSubmitting}
+                      />
+                      <span className={textClass}>My Brand</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="radio"
+                        checked={!newBrandIsMine}
+                        onChange={() => setNewBrandIsMine(false)}
+                        className="form-radio text-primary-500"
+                        disabled={isSubmitting}
+                      />
+                      <span className={textClass}>Competitor</span>
+                    </label>
+                  </div>
+                </div>
+                <div className="flex gap-3">
+                  <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2">
+                    {isSubmitting ? 'Saving...' : 'Save Brand'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddBrandForm(false); setNewBrandName(''); }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {/* Brands List */}
+          <div className="space-y-3">
+            {brands.map((brand) => (
+              <div key={brand.id} className={`${cardBgClass} p-4 rounded-xl border border-navy-700/50 flex items-center justify-between`}>
+                <div className="flex items-center gap-4">
+                  <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${brand.is_mine ? 'bg-green-500/10' : 'bg-orange-500/10'}`}>
+                    <Building2 className={`w-5 h-5 ${brand.is_mine ? 'text-green-500' : 'text-orange-500'}`} />
+                  </div>
+                  <div>
+                    <div className={`font-medium ${textClass}`}>{brand.brand_name}</div>
+                    <div className={`text-sm ${mutedTextClass}`}>{brand.is_mine ? 'My Brand' : 'Competitor'}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteBrand(brand.id)}
+                  className={`p-2 rounded-lg ${mutedTextClass} hover:text-red-500 hover:bg-red-500/10 transition-colors`}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+            {brands.length === 0 && <p className={`text-center py-6 ${mutedTextClass}`}>No brands added yet.</p>}
+          </div>
+        </div>
+
+        {/* Intents Section */}
+        <div className={`${glassCardClass} p-6 rounded-2xl mb-8`}>
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <Search className="w-6 h-6 text-primary-500" />
+              <h2 className={`text-xl font-semibold ${textClass}`}>Search Intents</h2>
+            </div>
+            {!showAddIntentForm && (
+              <button
+                onClick={() => setShowAddIntentForm(true)}
+                className="btn-primary flex items-center gap-2 text-sm"
+              >
+                <Plus className="w-4 h-4" />
+                Add Intent
+              </button>
+            )}
+          </div>
+
+          {/* Add Intent Form */}
+          {showAddIntentForm && (
+            <form onSubmit={handleAddIntent} className={`${cardBgClass} p-4 rounded-xl mb-6 border border-navy-700/50`}>
+              <h3 className={`font-medium ${textClass} mb-4`}>Add New Intent</h3>
+              <div className="grid gap-4">
+                <div>
+                  <label className={`block text-sm font-medium ${textClass} mb-2`}>Alias (ID)</label>
+                  <input
+                    type="text"
+                    value={newIntentAlias}
+                    onChange={(e) => setNewIntentAlias(e.target.value)}
+                    placeholder="e.g., best-email-tools"
+                    className={inputClass}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div>
+                  <label className={`block text-sm font-medium ${textClass} mb-2`}>Prompt</label>
+                  <textarea
+                    value={newIntentPrompt}
+                    onChange={(e) => setNewIntentPrompt(e.target.value)}
+                    placeholder="What are the best tools for..."
+                    className={`${inputClass} min-h-[100px]`}
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <div className="flex gap-3">
+                  <button type="submit" disabled={isSubmitting} className="btn-primary flex items-center gap-2">
+                    {isSubmitting ? 'Saving...' : 'Save Intent'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowAddIntentForm(false); setNewIntentAlias(''); setNewIntentPrompt(''); }}
+                    className="btn-secondary"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </form>
+          )}
+
+          {/* Intents List */}
+          <div className="space-y-3">
+            {intents.map((intent) => (
+              <div key={intent.id} className={`${cardBgClass} p-4 rounded-xl border border-navy-700/50 flex items-center justify-between`}>
+                <div className="flex items-center gap-4 flex-1">
+                  <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                    <Search className="w-5 h-5 text-blue-500" />
+                  </div>
+                  <div className="flex-1">
+                    <div className={`font-medium ${textClass}`}>{intent.intent_alias}</div>
+                    <div className={`text-sm ${mutedTextClass} line-clamp-2`}>{intent.prompt}</div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteIntent(intent.id)}
+                  className={`p-2 rounded-lg ${mutedTextClass} hover:text-red-500 hover:bg-red-500/10 transition-colors`}
+                >
+                  <Trash2 className="w-5 h-5" />
+                </button>
+              </div>
+            ))}
+            {intents.length === 0 && <p className={`text-center py-6 ${mutedTextClass}`}>No intents added yet.</p>}
+          </div>
         </div>
 
         {/* Security Note */}

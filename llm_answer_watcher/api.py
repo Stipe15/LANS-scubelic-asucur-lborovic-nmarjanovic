@@ -21,6 +21,7 @@ from llm_answer_watcher.config.schema import (
 from llm_answer_watcher.llm_runner.runner import run_all
 from llm_answer_watcher.system_prompts import get_provider_default
 from llm_answer_watcher.auth.router import router as auth_router
+from llm_answer_watcher.user_config_router import router as user_config_router
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +57,8 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Include authentication router
 app.include_router(auth_router)
+# Include user configuration router
+app.include_router(user_config_router)
 
 
 class ConfigData(BaseModel):

@@ -30,8 +30,9 @@ import {
   User,
   LogOut,
   Key,
+  Building2,
 } from 'lucide-react';
-import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig } from '../types.ts';
+import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig, UserBrand, UserIntent } from '../types.ts';
 import { GEMINI_MODELS, GROQ_MODELS } from '../types.ts';
 import yaml from 'js-yaml';
 import { useAuth } from '../auth/AuthContext';
@@ -282,22 +283,30 @@ export default function Dashboard({ theme }) {
   };
 
   const [savedKeys, setSavedKeys] = useState<any[]>([]);
+  const [savedBrands, setSavedBrands] = useState<UserBrand[]>([]);
+  const [savedIntents, setSavedIntents] = useState<UserIntent[]>([]);
+  const [showBrandDropdown, setShowBrandDropdown] = useState(false);
+  const [showCompetitorDropdown, setShowCompetitorDropdown] = useState(false);
+  const [showIntentDropdown, setShowIntentDropdown] = useState(false);
 
   useEffect(() => {
-    const fetchSavedKeys = async () => {
+    const fetchUserData = async () => {
       if (!token) return;
       try {
-        const response = await fetch(`${API_BASE_URL}/auth/api-keys`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-          setSavedKeys(await response.json());
-        }
+        const [keysRes, brandsRes, intentsRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/auth/api-keys`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/user/brands`, { headers: { 'Authorization': `Bearer ${token}` } }),
+          fetch(`${API_BASE_URL}/user/intents`, { headers: { 'Authorization': `Bearer ${token}` } }),
+        ]);
+
+        if (keysRes.ok) setSavedKeys(await keysRes.json());
+        if (brandsRes.ok) setSavedBrands(await brandsRes.json());
+        if (intentsRes.ok) setSavedIntents(await intentsRes.json());
       } catch (err) {
-        console.error('Failed to fetch saved keys', err);
+        console.error('Failed to fetch user data', err);
       }
     };
-    fetchSavedKeys();
+    fetchUserData();
   }, [token]);
 
   const loadSavedKey = async (provider: string, keyName: string | null) => {
@@ -1045,9 +1054,52 @@ export default function Dashboard({ theme }) {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* My Brands */}
                   <div>
-                    <label className="label flex items-center gap-2">
-                      <span className="tag-primary text-xs">YOUR BRANDS</span>
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="label flex items-center gap-2 mb-0">
+                        <span className="tag-primary text-xs">YOUR BRANDS</span>
+                      </label>
+                      
+                      {savedBrands.some(b => b.is_mine) && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                          >
+                            <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                          </button>
+                          
+                          {showBrandDropdown && (
+                            <div className={`absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-lg z-20 ${
+                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                            }`}>
+                              {savedBrands.filter(b => b.is_mine).map(brand => (
+                                <button
+                                  key={brand.id}
+                                  onClick={() => {
+                                    if (!myBrands.includes(brand.brand_name)) {
+                                      // If current input is empty, replace it, otherwise append
+                                      const newBrands = [...myBrands];
+                                      if (newBrands.length === 1 && newBrands[0] === '') {
+                                        newBrands[0] = brand.brand_name;
+                                      } else {
+                                        newBrands.push(brand.brand_name);
+                                      }
+                                      setMyBrands(newBrands);
+                                    }
+                                    setShowBrandDropdown(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
+                                    theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-black text-gray-900'
+                                  }`}
+                                >
+                                  {brand.brand_name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       {myBrands.map((brand, index) => (
                         <div key={index} className="flex gap-2">
@@ -1076,9 +1128,51 @@ export default function Dashboard({ theme }) {
 
                   {/* Competitors */}
                   <div>
-                    <label className="label flex items-center gap-2">
-                      <span className="tag-accent text-xs">COMPETITORS</span>
-                    </label>
+                    <div className="flex justify-between items-center mb-2">
+                      <label className="label flex items-center gap-2 mb-0">
+                        <span className="tag-accent text-xs">COMPETITORS</span>
+                      </label>
+                      
+                      {savedBrands.some(b => !b.is_mine) && (
+                        <div className="relative">
+                          <button
+                            onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
+                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                          >
+                            <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                          </button>
+                          
+                          {showCompetitorDropdown && (
+                            <div className={`absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-lg z-20 ${
+                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                            }`}>
+                              {savedBrands.filter(b => !b.is_mine).map(brand => (
+                                <button
+                                  key={brand.id}
+                                  onClick={() => {
+                                    if (!competitors.includes(brand.brand_name)) {
+                                      const newCompetitors = [...competitors];
+                                      if (newCompetitors.length === 1 && newCompetitors[0] === '') {
+                                        newCompetitors[0] = brand.brand_name;
+                                      } else {
+                                        newCompetitors.push(brand.brand_name);
+                                      }
+                                      setCompetitors(newCompetitors);
+                                    }
+                                    setShowCompetitorDropdown(false);
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
+                                    theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-black text-gray-900'
+                                  }`}
+                                >
+                                  {brand.brand_name}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     <div className="space-y-2">
                       {competitors.map((competitor, index) => (
                         <div key={index} className="flex gap-2">
@@ -1112,9 +1206,56 @@ export default function Dashboard({ theme }) {
 
               {/* Intents Section */}
               <section className={`${glassCardClass} p-6`}>
-                <div className="flex items-center gap-2 mb-4">
-                  <MessageSquare className="w-5 h-5 text-green-400" />
-                  <h2 className="section-title">Search Queries (Intents)</h2>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="w-5 h-5 text-green-400" />
+                    <h2 className="section-title">Search Queries (Intents)</h2>
+                  </div>
+                  
+                  {savedIntents.length > 0 && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowIntentDropdown(!showIntentDropdown)}
+                        className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                      >
+                        <MessageSquare className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                      </button>
+                      
+                      {showIntentDropdown && (
+                        <div className={`absolute right-0 top-full mt-1 w-64 rounded-lg border shadow-lg z-20 ${
+                          theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                        }`}>
+                          {savedIntents.map(intent => (
+                            <button
+                              key={intent.id}
+                              onClick={() => {
+                                // Add if not exists by checking intent_alias against id
+                                const exists = intents.some(i => i.id === intent.intent_alias);
+                                if (!exists) {
+                                  const newIntents = [...intents];
+                                  if (newIntents.length === 1 && newIntents[0].id === '' && newIntents[0].prompt === '') {
+                                    newIntents[0] = { id: intent.intent_alias, prompt: intent.prompt };
+                                  } else {
+                                    newIntents.push({ id: intent.intent_alias, prompt: intent.prompt });
+                                  }
+                                  setIntents(newIntents);
+                                }
+                                setShowIntentDropdown(false);
+                              }}
+                              className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
+                                theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-black text-gray-900'
+                              }`}
+                            >
+                              <div className="font-medium">{intent.intent_alias}</div>
+                              <div className={`text-xs truncate ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                                {intent.prompt}
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-600'} mb-4`}>
