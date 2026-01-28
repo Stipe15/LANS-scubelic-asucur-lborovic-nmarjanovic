@@ -324,7 +324,9 @@ export default function Dashboard({ theme }) {
       
       if (response.ok) {
         const data = await response.json();
-        setApiKeys(prev => ({ ...prev, [provider]: data.api_key }));
+        if (data.api_key) {
+          setApiKeys(prev => ({ ...prev, [providerLower]: data.api_key }));
+        }
       }
     } catch (err) {
       console.error('Failed to load API key', err);
