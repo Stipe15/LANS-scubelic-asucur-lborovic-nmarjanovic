@@ -32,6 +32,7 @@ import {
   Key,
   Building2,
   Info,
+  FileSpreadsheet,
 } from 'lucide-react';
 import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig, UserBrand, UserIntent } from '../types.ts';
 import { GEMINI_MODELS, GROQ_MODELS } from '../types.ts';
@@ -386,6 +387,7 @@ export default function Dashboard({ theme }) {
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showCompetitorDropdown, setShowCompetitorDropdown] = useState(false);
   const [showIntentDropdown, setShowIntentDropdown] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -1592,17 +1594,60 @@ export default function Dashboard({ theme }) {
                   <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-gray-800'}`}>
                     Search Results for Run: <span className="text-primary-400">{runId}</span>
                   </h2>
-                  <div className="flex gap-2">
-                    <button onClick={downloadResultsCSV} className={`${btnSecondaryClass} text-sm px-3 py-2`} title="Download CSV">
-                      <Download className="w-4 h-4 mr-2 inline" /> CSV
-                    </button>
-                    <button onClick={downloadResultsJSON} className={`${btnSecondaryClass} text-sm px-3 py-2`} title="Download JSON">
-                      <Code className="w-4 h-4 mr-2 inline" /> JSON
-                    </button>
-                    <button onClick={downloadResultsText} className={`${btnSecondaryClass} text-sm px-3 py-2`} title="Download Text">
-                      <FileText className="w-4 h-4 mr-2 inline" /> TXT
-                    </button>
+                  <div className="flex items-center gap-4">
+                    <span className={`hidden sm:block text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'} italic text-right max-w-[150px]`}>
+                      Download your analysis for reports or further processing
+                    </span>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowExportMenu(!showExportMenu)}
+                        className={`${btnSecondaryClass} flex items-center gap-2 px-4 py-2`}
+                      >
+                        <Download className="w-4 h-4" />
+                        Export Results
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showExportMenu ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {showExportMenu && (
+                      <div className={`absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden animate-scale-in origin-top-right ${
+                        theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                      }`}>
+                         <div className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-navy-400 bg-navy-900/50' : 'text-gray-500 bg-gray-50'}`}>
+                           Select Format
+                         </div>
+                         <div className="p-1">
+                           <button onClick={() => { downloadResultsCSV(); setShowExportMenu(false); }} className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === 'dark' ? 'bg-emerald-500/10' : 'bg-emerald-50'} shrink-0`}>
+                                <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium">CSV Spreadsheet</span>
+                                <span className={`text-[10px] ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`}>For Excel/Sheets</span>
+                              </div>
+                           </button>
+                           <button onClick={() => { downloadResultsJSON(); setShowExportMenu(false); }} className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === 'dark' ? 'bg-amber-500/10' : 'bg-amber-50'} shrink-0`}>
+                                <Code className="w-4 h-4 text-amber-500" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium">JSON Data</span>
+                                <span className={`text-[10px] ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`}>Raw structured data</span>
+                              </div>
+                           </button>
+                           <button onClick={() => { downloadResultsText(); setShowExportMenu(false); }} className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === 'dark' ? 'bg-blue-500/10' : 'bg-blue-50'} shrink-0`}>
+                                <FileText className="w-4 h-4 text-blue-500" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium">Text Report</span>
+                                <span className={`text-[10px] ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`}>Readable summary</span>
+                              </div>
+                           </button>
+                         </div>
+                      </div>
+                    )}
                   </div>
+                </div>
                 </div>
                 <div className="space-y-8">
                   {results.intents_data.map((intentResult: any) => (
