@@ -735,7 +735,7 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
 
               <button
                 onClick={addBrand}
-                className={addBtnClass}
+                className={`${addBtnClass} mt-[10px]`}
               >
                 <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
                 Add Another Brand Variant
