@@ -31,11 +31,27 @@ import {
   LogOut,
   Key,
   Building2,
+  Info,
+  FileSpreadsheet,
+  Trash2,
 } from 'lucide-react';
 import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig, UserBrand, UserIntent } from '../types.ts';
 import { GEMINI_MODELS, GROQ_MODELS } from '../types.ts';
 import yaml from 'js-yaml';
 import { useAuth } from '../auth/AuthContext';
+import { useToast } from '../context/ToastContext';
+import { Skeleton } from '../components/ui/Skeleton';
+import { StatsBar } from '../components/ui/StatsBar';
+import { TagInput } from '../components/ui/TagInput';
+import { CollapsibleSection } from '../components/ui/CollapsibleSection';
+
+const INTENT_TEMPLATES = [
+  { id: 'pricing-compare', label: 'Pricing Comparison', prompt: 'Compare the pricing models of [MyBrand] vs [Competitor]. Which offers better value for small businesses?' },
+  { id: 'feature-analysis', label: 'Feature Analysis', prompt: 'What are the key feature differences between [MyBrand] and [Competitor]? Highlight unique selling points.' },
+  { id: 'sentiment-check', label: 'Brand Sentiment', prompt: 'What is the general user sentiment towards [MyBrand] in 2024? Mention common praises and complaints.' },
+  { id: 'alternatives', label: 'Best Alternatives', prompt: 'What are the top 3 alternatives to [Competitor] and why should I consider [MyBrand]?' },
+  { id: 'security-review', label: 'Security Review', prompt: 'How does [MyBrand] compare to [Competitor] in terms of security and compliance certifications?' },
+];
 
 const StatsComparison = ({ results, theme }: { results: any, theme: string }) => {
   if (!results || !results.intents_data) return null;
@@ -83,8 +99,8 @@ const StatsComparison = ({ results, theme }: { results: any, theme: string }) =>
   });
 
   const avgRank = (ranks: number[]) => {
-    if (ranks.length === 0) return 'N/A';
-    return (ranks.reduce((a, b) => a + b, 0) / ranks.length).toFixed(2);
+    if (ranks.length === 0) return 0;
+    return parseFloat((ranks.reduce((a, b) => a + b, 0) / ranks.length).toFixed(2));
   };
   
   const glassCardClass = theme === 'dark'
@@ -93,28 +109,121 @@ const StatsComparison = ({ results, theme }: { results: any, theme: string }) =>
 
   return (
     <div className={`${glassCardClass} p-6 mt-8`}>
-      <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'} mb-4`}>Model Comparison</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles className="w-5 h-5 text-primary-400" />
+        <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'}`}>Model Comparison</h3>
+      </div>
+      
+      <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} mb-6`}>
+        Compare how different AI models perceive your brand against competitors across all search queries.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Google Gemini Column */}
         <div>
-          <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-primary-300' : 'text-primary-500'} mb-3`}>Google Gemini</h4>
-          <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
-            <div className="flex justify-between"><span>Detected Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.google.totalMentions}</span></div>
-            <div className="flex justify-between"><span>My Brand Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.google.myBrandMentions}</span></div>
-            <div className="flex justify-between"><span>#1 Ranks for My Brand:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.google.myBrandRank1Mentions}</span></div>
-            <div className="flex justify-between"><span>Avg. My Brand Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{avgRank(stats.google.myBrandRanks)}</span></div>
-            <div className="flex justify-between"><span>Competitor Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.google.competitorMentions}</span></div>
-            <div className="flex justify-between"><span>Avg. Competitor Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{avgRank(stats.google.competitorRanks)}</span></div>
+          <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-primary-300' : 'text-primary-500'} mb-4 flex items-center gap-2`}>
+            Google Gemini
+            <span className="text-[10px] px-1.5 py-0.5 rounded border border-primary-500/30 uppercase">With Search</span>
+          </h4>
+          <div className="space-y-6">
+             <div title="Percentage of mentions belonging to your brand out of all brand mentions detected.">
+               <StatsBar 
+                  label="Share of Voice" 
+                  value={stats.google.myBrandMentions} 
+                  total={stats.google.totalMentions || 1} 
+                  theme={theme}
+                  colorClass="bg-primary-500"
+                  suffix={` / ${stats.google.totalMentions} total mentions`}
+               />
+               <p className="text-[11px] text-navy-400 mt-1">How often you appear compared to everyone else.</p>
+             </div>
+
+             <div title="How often your brand was the first one mentioned in the response.">
+               <StatsBar 
+                  label="#1 Ranking Rate" 
+                  value={stats.google.myBrandRank1Mentions} 
+                  total={stats.google.myBrandMentions || 1} 
+                  theme={theme}
+                  colorClass="bg-emerald-500"
+                  suffix={` / ${stats.google.myBrandMentions} of your mentions`}
+               />
+               <p className="text-[11px] text-navy-400 mt-1">Frequency of being the top recommendation.</p>
+             </div>
+
+             <div className="grid grid-cols-2 gap-4 mt-2">
+                <div 
+                  className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}
+                  title="Average numerical position of your brand in the response lists (Lower is better)."
+                >
+                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} flex items-center gap-1`}>
+                      Avg My Rank <Info className="w-3 h-3" />
+                    </div>
+                    <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{avgRank(stats.google.myBrandRanks) || '-'}</div>
+                </div>
+                <div 
+                  className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}
+                  title="Average numerical position of competitor brands (Higher than yours is better)."
+                >
+                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} flex items-center gap-1`}>
+                      Avg Comp Rank <Info className="w-3 h-3" />
+                    </div>
+                    <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{avgRank(stats.google.competitorRanks) || '-'}</div>
+                </div>
+             </div>
           </div>
         </div>
+
+        {/* Groq Column */}
         <div>
-          <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-accent-300' : 'text-accent-500'} mb-3`}>Groq</h4>
-          <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
-            <div className="flex justify-between"><span>Detected Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.groq.totalMentions}</span></div>
-            <div className="flex justify-between"><span>My Brand Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.groq.myBrandMentions}</span></div>
-            <div className="flex justify-between"><span>#1 Ranks for My Brand:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.groq.myBrandRank1Mentions}</span></div>
-            <div className="flex justify-between"><span>Avg. My Brand Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{avgRank(stats.groq.myBrandRanks)}</span></div>
-            <div className="flex justify-between"><span>Competitor Mentions:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{stats.groq.competitorMentions}</span></div>
-            <div className="flex justify-between"><span>Avg. Competitor Rank:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{avgRank(stats.groq.competitorRanks)}</span></div>
+          <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-accent-300' : 'text-accent-500'} mb-4 flex items-center gap-2`}>
+            Groq
+            <span className="text-[10px] px-1.5 py-0.5 rounded border border-accent-500/30 uppercase">Llama 3</span>
+          </h4>
+          <div className="space-y-6">
+             <div title="Percentage of mentions belonging to your brand out of all brand mentions detected.">
+               <StatsBar 
+                  label="Share of Voice" 
+                  value={stats.groq.myBrandMentions} 
+                  total={stats.groq.totalMentions || 1} 
+                  theme={theme}
+                  colorClass="bg-accent-500"
+                  suffix={` / ${stats.groq.totalMentions} total mentions`}
+               />
+               <p className="text-[11px] text-navy-400 mt-1">How often you appear compared to everyone else.</p>
+             </div>
+
+             <div title="How often your brand was the first one mentioned in the response.">
+               <StatsBar 
+                  label="#1 Ranking Rate" 
+                  value={stats.groq.myBrandRank1Mentions} 
+                  total={stats.groq.myBrandMentions || 1} 
+                  theme={theme}
+                  colorClass="bg-emerald-500"
+                  suffix={` / ${stats.groq.myBrandMentions} of your mentions`}
+               />
+               <p className="text-[11px] text-navy-400 mt-1">Frequency of being the top recommendation.</p>
+             </div>
+
+             <div className="grid grid-cols-2 gap-4 mt-2">
+                <div 
+                  className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}
+                  title="Average numerical position of your brand in the response lists (Lower is better)."
+                >
+                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} flex items-center gap-1`}>
+                      Avg My Rank <Info className="w-3 h-3" />
+                    </div>
+                    <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{avgRank(stats.groq.myBrandRanks) || '-'}</div>
+                </div>
+                <div 
+                  className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}
+                  title="Average numerical position of competitor brands (Higher than yours is better)."
+                >
+                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} flex items-center gap-1`}>
+                      Avg Comp Rank <Info className="w-3 h-3" />
+                    </div>
+                    <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{avgRank(stats.groq.competitorRanks) || '-'}</div>
+                </div>
+             </div>
           </div>
         </div>
       </div>
@@ -144,29 +253,87 @@ const TokenUsageStats = ({ results, selectedProvider, selectedGoogleModel, selec
     });
   });
 
-  const glassCardClass = theme === 'dark'
-    ? 'glass-card'
-    : 'glass-card-light';
+  const cardStyle = `p-6 ${theme === 'dark' ? 'bg-navy-800/20 border-navy-700/40' : 'bg-gray-100/50 border-gray-200/40'} rounded-2xl border mt-8`;
 
   return (
-    <div className={`${glassCardClass} p-6 mt-8`}>
-      <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'} mb-4`}>Token Usage</h3>
+    <div className={cardStyle}>
+      <div className="flex items-center gap-3 mb-6">
+         <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-primary-500/10 text-primary-500' : 'bg-primary-100 text-primary-600'}`}>
+            <Zap className="w-5 h-5" />
+         </div>
+         <div>
+            <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'}`}>Token Consumption</h3>
+            <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>Total generated tokens for this search run</p>
+         </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {(selectedProvider === 'google' || selectedProvider === 'both') && (
-          <div>
-            <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-primary-300' : 'text-primary-500'} mb-3`}>Google Gemini ({selectedGoogleModel})</h4>
-            <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
-              <div className="flex justify-between"><span>Tokens Used:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{modelInfo.google.used}</span></div>
-            </div>
-          </div>
+           <div className={`relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 ${
+              theme === 'dark' 
+                ? 'bg-navy-900/40 border-navy-800' 
+                : 'bg-white border-slate-200 shadow-sm'
+           }`}>
+              <div className="relative z-10">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                       <div className="p-2.5 rounded-xl bg-primary-500/10 text-primary-500">
+                          <Sparkles className="w-5 h-5" />
+                       </div>
+                       <div>
+                          <h4 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Google Gemini</h4>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>{selectedGoogleModel}</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="mt-2">
+                    <div className={`text-3xl font-bold font-mono tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                       {modelInfo.google.used.toLocaleString()}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-primary-500/20 text-primary-300' : 'bg-primary-100 text-primary-700'}`}>
+                           TOKENS
+                        </span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>generated total</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
         )}
+
         {(selectedProvider === 'groq' || selectedProvider === 'both') && (
-          <div>
-            <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-accent-300' : 'text-accent-500'} mb-3`}>Groq ({selectedGroqModel})</h4>
-            <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
-              <div className="flex justify-between"><span>Tokens Used:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{modelInfo.groq.used}</span></div>
-            </div>
-          </div>
+           <div className={`relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 ${
+              theme === 'dark' 
+                ? 'bg-navy-900/40 border-navy-800' 
+                : 'bg-white border-slate-200 shadow-sm'
+           }`}>
+              <div className="relative z-10">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                       <div className="p-2.5 rounded-xl bg-accent-500/10 text-accent-500">
+                          <Zap className="w-5 h-5" />
+                       </div>
+                       <div>
+                          <h4 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Groq</h4>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>{selectedGroqModel}</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="mt-2">
+                    <div className={`text-3xl font-bold font-mono tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                       {modelInfo.groq.used.toLocaleString()}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-accent-500/20 text-accent-300' : 'bg-accent-100 text-accent-700'}`}>
+                           TOKENS
+                        </span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>generated total</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
         )}
       </div>
     </div>
@@ -275,6 +442,7 @@ export default function Dashboard({ theme }) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user, token, logout } = useAuth();
+  const { showToast } = useToast();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const handleLogout = async () => {
@@ -288,6 +456,7 @@ export default function Dashboard({ theme }) {
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showCompetitorDropdown, setShowCompetitorDropdown] = useState(false);
   const [showIntentDropdown, setShowIntentDropdown] = useState(false);
+  const [showExportMenu, setShowExportMenu] = useState(false);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -326,10 +495,12 @@ export default function Dashboard({ theme }) {
         const data = await response.json();
         if (data.api_key) {
           setApiKeys(prev => ({ ...prev, [providerLower]: data.api_key }));
+          showToast(`Loaded ${keyName || 'default'} key for ${provider}`, 'success');
         }
       }
     } catch (err) {
       console.error('Failed to load API key', err);
+      showToast('Failed to load API key', 'error');
     }
   };
 
@@ -441,34 +612,6 @@ export default function Dashboard({ theme }) {
   const yamlOutput = yaml.dump(generateConfig(), { lineWidth: -1 });
 
   // Handlers
-  const addBrand = (type: 'mine' | 'competitors') => {
-    if (type === 'mine') {
-      setMyBrands([...myBrands, '']);
-    } else {
-      setCompetitors([...competitors, '']);
-    }
-  };
-
-  const removeBrand = (type: 'mine' | 'competitors', index: number) => {
-    if (type === 'mine') {
-      setMyBrands(myBrands.filter((_, i) => i !== index));
-    } else {
-      setCompetitors(competitors.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateBrand = (type: 'mine' | 'competitors', index: number, value: string) => {
-    if (type === 'mine') {
-      const updated = [...myBrands];
-      updated[index] = value;
-      setMyBrands(updated);
-    } else {
-      const updated = [...competitors];
-      updated[index] = value;
-      setCompetitors(updated);
-    }
-  };
-
   const addIntent = () => {
     setIntents([...intents, { id: '', prompt: '' }]);
   };
@@ -483,9 +626,45 @@ export default function Dashboard({ theme }) {
     setIntents(updated);
   };
 
+  const applyTemplate = (templateId: string) => {
+    const template = INTENT_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+    
+    // Replace placeholders if brands are set
+    let prompt = template.prompt;
+    
+    const activeBrands = myBrands.filter(b => b.trim());
+    const activeCompetitors = competitors.filter(c => c.trim());
+    
+    // Create comma-separated lists
+    const brandsText = activeBrands.length > 0 
+      ? (activeBrands.length > 1 
+          ? activeBrands.slice(0, -1).join(', ') + ' and ' + activeBrands.slice(-1)
+          : activeBrands[0])
+      : '[MyBrand]';
+      
+    const competitorsText = activeCompetitors.length > 0 
+      ? (activeCompetitors.length > 1 
+          ? activeCompetitors.slice(0, -1).join(', ') + ' and ' + activeCompetitors.slice(-1)
+          : activeCompetitors[0])
+      : '[Competitor]';
+    
+    prompt = prompt.replace(/\[MyBrand\]/g, brandsText).replace(/\[Competitor\]/g, competitorsText);
+    
+    // Append to existing intents
+    // If the first intent is empty, replace it instead
+    if (intents.length === 1 && !intents[0].id && !intents[0].prompt) {
+        setIntents([{ id: template.id, prompt }]);
+    } else {
+        setIntents([...intents, { id: template.id, prompt }]);
+    }
+    showToast(`Added "${template.label}" template`, 'info');
+  };
+
   const copyToClipboard = async () => {
     await navigator.clipboard.writeText(yamlOutput);
     setCopied(true);
+    showToast('Configuration copied to clipboard', 'success');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -502,18 +681,20 @@ export default function Dashboard({ theme }) {
   const runSearch = async () => {
     if (selectedProvider === 'both') {
       if (!apiKeys.google || !apiKeys.groq) {
-        alert('Please enter API keys for both Google and Groq');
+        showToast('Please enter API keys for both Google and Groq', 'error');
         return;
       }
     } else {
       if (!apiKeys[selectedProvider]) {
-        alert(`Please enter your ${selectedProvider === 'google' ? 'Gemini' : 'Groq'} API key`);
+        showToast(`Please enter your ${selectedProvider === 'google' ? 'Gemini' : 'Groq'} API key`, 'error');
         return;
       }
     }
     setIsRunning(true);
     setResults(null);
     setRunId(null);
+    setActiveTab('results'); // Switch immediately to show loading state
+
     try {
       const response = await fetch(`${API_BASE_URL}/run_watcher`, {
         method: 'POST',
@@ -528,7 +709,9 @@ export default function Dashboard({ theme }) {
 
       const runData = await response.json();
       setRunId(runData.run_id);
-
+      
+      // Poll for results if needed, or just fetch immediately if synchronous
+      // Assuming synchronous for now based on previous code, but could be async
       const resultsResponse = await fetch(`${API_BASE_URL}/results/${runData.run_id}`);
       if(!resultsResponse.ok) {
         const errorData = await resultsResponse.json();
@@ -537,11 +720,12 @@ export default function Dashboard({ theme }) {
 
       const resultsData = await resultsResponse.json();
       setResults(resultsData);
-
-      setActiveTab('results');
+      showToast('Search completed successfully', 'success');
+      
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
-      alert(`An error occurred: ${message}`);
+      showToast(`An error occurred: ${message}`, 'error');
+      setActiveTab('config'); // Switch back to config on error
     } finally {
       setIsRunning(false);
     }
@@ -756,14 +940,15 @@ export default function Dashboard({ theme }) {
         {activeTab === 'config' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Configuration */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4">
+              
               {/* API Key Section */}
-              <section className={`${glassCardClass} p-6`}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Shield className="w-5 h-5 text-primary-400" />
-                  <h2 className="section-title">API Configuration</h2>
-                </div>
-
+              <CollapsibleSection 
+                title="API Configuration" 
+                icon={<Shield className="w-5 h-5 text-primary-400" />}
+                theme={theme}
+                isComplete={!!((selectedProvider === 'both' ? apiKeys.google && apiKeys.groq : apiKeys[selectedProvider]))}
+              >
                 <div className="space-y-4">
                   {/* Provider Selection */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -1043,16 +1228,16 @@ export default function Dashboard({ theme }) {
                     <span className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-700'}`}>Enable Google Search grounding</span>
                   </div>
                 )}
-              </div>
-            </section>
+                </div>
+              </CollapsibleSection>
 
               {/* Brands Section */}
-              <section className={`${glassCardClass} p-6`}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Target className="w-5 h-5 text-accent-400" />
-                  <h2 className="section-title">Brands to Track</h2>
-                </div>
-
+              <CollapsibleSection 
+                title="Brands to Track" 
+                icon={<Target className="w-5 h-5 text-accent-400" />}
+                theme={theme}
+                isComplete={myBrands.filter(b => b.trim()).length > 0}
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* My Brands */}
                   <div>
@@ -1102,30 +1287,12 @@ export default function Dashboard({ theme }) {
                         </div>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      {myBrands.map((brand, index) => (
-                        <div key={index} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={brand}
-                            onChange={(e) => updateBrand('mine', index, e.target.value)}
-                            placeholder="e.g., YourProduct"
-                            className={`${inputClass} flex-1`}
-                          />
-                          {myBrands.length > 1 && (
-                            <button
-                              onClick={() => removeBrand('mine', index)}
-                              className="btn-danger px-3"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      <button onClick={() => addBrand('mine')} className={`${btnGhostClass} text-sm w-full`}>
-                        <Plus className="w-4 h-4 mr-1" /> Add brand
-                      </button>
-                    </div>
+                    <TagInput 
+                      tags={myBrands.filter(b => b.trim())}
+                      onChange={setMyBrands}
+                      placeholder="Type brand & press Enter"
+                      theme={theme}
+                    />
                   </div>
 
                   {/* Competitors */}
@@ -1175,43 +1342,26 @@ export default function Dashboard({ theme }) {
                         </div>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      {competitors.map((competitor, index) => (
-                        <div key={index} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={competitor}
-                            onChange={(e) => updateBrand('competitors', index, e.target.value)}
-                            placeholder="e.g., CompetitorA"
-                            className={`${inputClass} flex-1`}
-                          />
-                          {competitors.length > 1 && (
-                            <button
-                              onClick={() => removeBrand('competitors', index)}
-                              className="btn-danger px-3"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => addBrand('competitors')}
-                        className={`${btnGhostClass} text-sm w-full`}
-                      >
-                        <Plus className="w-4 h-4 mr-1" /> Add competitor
-                      </button>
-                    </div>
+                    <TagInput 
+                      tags={competitors.filter(c => c.trim())}
+                      onChange={setCompetitors}
+                      placeholder="Type competitor & press Enter"
+                      theme={theme}
+                    />
                   </div>
                 </div>
-              </section>
+              </CollapsibleSection>
 
               {/* Intents Section */}
-              <section className={`${glassCardClass} p-6`}>
+              <CollapsibleSection 
+                title="Search Queries (Intents)" 
+                icon={<MessageSquare className="w-5 h-5 text-green-400" />}
+                theme={theme}
+                isComplete={intents.filter(i => i.prompt.trim()).length > 0}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-green-400" />
-                    <h2 className="section-title">Search Queries (Intents)</h2>
+                    <h2 className="text-sm font-medium opacity-70">Quick Start Templates</h2>
                   </div>
                   
                   {savedIntents.length > 0 && (
@@ -1260,10 +1410,22 @@ export default function Dashboard({ theme }) {
                   )}
                 </div>
 
-                <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-600'} mb-4`}>
-                  Define the questions you want to ask the AI. These should be buyer-intent queries
-                  your customers might ask.
-                </p>
+                {/* Suggestion Rail */}
+                <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+                  {INTENT_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => applyTemplate(template.id)}
+                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-navy-800 border-navy-700 text-navy-300 hover:border-primary-500 hover:text-primary-400'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-primary-500 hover:text-primary-600'
+                      }`}
+                    >
+                      + {template.label}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="space-y-4">
                   {intents.map((intent, index) => (
@@ -1285,11 +1447,13 @@ export default function Dashboard({ theme }) {
                             className={`${inputClass} resize-none`}
                           />
                         </div>
-                        {intents.length > 1 && (
-                          <button onClick={() => removeIntent(index)} className="btn-danger px-3 py-3">
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => removeIntent(index)} 
+                          className="btn-danger p-3"
+                          title="Remove query"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
@@ -1298,7 +1462,7 @@ export default function Dashboard({ theme }) {
                     <Plus className="w-4 h-4 mr-2" /> Add another query
                   </button>
                 </div>
-              </section>
+              </CollapsibleSection>
             </div>
 
             {/* Right Column - Preview & Actions */}
@@ -1436,24 +1600,110 @@ export default function Dashboard({ theme }) {
             </div>
           </div>
         ) : (
-          <div className={`${glassCardClass} p-8`}> {/* Outer div for the Results Tab, acts as single root element */}
-            {results && results.intents_data && results.intents_data.length > 0 ? (
+          <div className={`${glassCardClass} p-8`}> 
+            {isRunning ? (
+               <div className="space-y-8">
+                  {/* Loading Indicator */}
+                  <div className="flex flex-col items-center justify-center py-8 animate-fade-in">
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 bg-primary-500/30 blur-2xl rounded-full animate-pulse"></div>
+                      <div className={`relative w-20 h-20 rounded-2xl ${theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-100'} border shadow-2xl flex items-center justify-center`}>
+                        <div className="relative">
+                           <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
+                           <div className="absolute inset-0 flex items-center justify-center">
+                              <Sparkles className="w-4 h-4 text-accent-400 animate-pulse" />
+                           </div>
+                        </div>
+                      </div>
+                    </div>
+                    <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      LLM Answer Watcher is Analyzing
+                    </h3>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-500'} max-w-sm text-center`}>
+                      We're querying the models and extracting brand mentions. This may take a few seconds...
+                    </p>
+                  </div>
+
+                  {/* Skeletons */}
+                  <div className="space-y-8 animate-pulse opacity-40 pointer-events-none">
+                      <div className="flex justify-between items-center mb-6">
+                        <Skeleton className="h-8 w-64" theme={theme} />
+                        <div className="flex gap-2">
+                            <Skeleton className="h-9 w-20" theme={theme} />
+                            <Skeleton className="h-9 w-20" theme={theme} />
+                        </div>
+                      </div>
+                      {[1, 2].map((i) => (
+                        <div key={i} className={`p-6 rounded-2xl border ${theme === 'dark' ? 'border-navy-700/40 bg-navy-800/20' : 'border-gray-200/40 bg-gray-100/50'}`}>
+                            <div className="flex items-center gap-4 mb-4">
+                                <Skeleton className="w-8 h-8 rounded-lg" theme={theme} />
+                                <Skeleton className="h-6 w-1/2" theme={theme} />
+                            </div>
+                            <Skeleton className="h-32 w-full rounded-xl" theme={theme} />
+                        </div>
+                      ))}
+                   </div>
+               </div>
+            ) : results && results.intents_data && results.intents_data.length > 0 ? (
               <>
                 <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 gap-4">
                   <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-gray-800'}`}>
                     Search Results for Run: <span className="text-primary-400">{runId}</span>
                   </h2>
-                  <div className="flex gap-2">
-                    <button onClick={downloadResultsCSV} className={`${btnSecondaryClass} text-sm px-3 py-2`} title="Download CSV">
-                      <Download className="w-4 h-4 mr-2 inline" /> CSV
-                    </button>
-                    <button onClick={downloadResultsJSON} className={`${btnSecondaryClass} text-sm px-3 py-2`} title="Download JSON">
-                      <Code className="w-4 h-4 mr-2 inline" /> JSON
-                    </button>
-                    <button onClick={downloadResultsText} className={`${btnSecondaryClass} text-sm px-3 py-2`} title="Download Text">
-                      <FileText className="w-4 h-4 mr-2 inline" /> TXT
-                    </button>
+                  <div className="flex items-center gap-4">
+                    <span className={`hidden sm:block text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'} italic text-right max-w-[150px]`}>
+                      Download your analysis for reports or further processing
+                    </span>
+                    <div className="relative">
+                      <button
+                        onClick={() => setShowExportMenu(!showExportMenu)}
+                        className={`${btnSecondaryClass} flex items-center gap-2 px-4 py-2`}
+                      >
+                        <Download className="w-4 h-4" />
+                        Export Results
+                        <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${showExportMenu ? 'rotate-180' : ''}`} />
+                      </button>
+                      
+                      {showExportMenu && (
+                      <div className={`absolute right-0 top-full mt-2 w-56 rounded-xl border shadow-xl z-50 overflow-hidden animate-scale-in origin-top-right ${
+                        theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                      }`}>
+                         <div className={`px-4 py-2 text-[10px] font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-navy-400 bg-navy-900/50' : 'text-gray-500 bg-gray-50'}`}>
+                           Select Format
+                         </div>
+                         <div className="p-1">
+                           <button onClick={() => { downloadResultsCSV(); setShowExportMenu(false); }} className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === 'dark' ? 'bg-emerald-500/10' : 'bg-emerald-50'} shrink-0`}>
+                                <FileSpreadsheet className="w-4 h-4 text-emerald-500" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium">CSV Spreadsheet</span>
+                                <span className={`text-[10px] ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`}>For Excel/Sheets</span>
+                              </div>
+                           </button>
+                           <button onClick={() => { downloadResultsJSON(); setShowExportMenu(false); }} className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === 'dark' ? 'bg-amber-500/10' : 'bg-amber-50'} shrink-0`}>
+                                <Code className="w-4 h-4 text-amber-500" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium">JSON Data</span>
+                                <span className={`text-[10px] ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`}>Raw structured data</span>
+                              </div>
+                           </button>
+                           <button onClick={() => { downloadResultsText(); setShowExportMenu(false); }} className={`w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'}`}>
+                              <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${theme === 'dark' ? 'bg-blue-500/10' : 'bg-blue-50'} shrink-0`}>
+                                <FileText className="w-4 h-4 text-blue-500" />
+                              </div>
+                              <div className="flex flex-col">
+                                <span className="font-medium">Text Report</span>
+                                <span className={`text-[10px] ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`}>Readable summary</span>
+                              </div>
+                           </button>
+                         </div>
+                      </div>
+                    )}
                   </div>
+                </div>
                 </div>
                 <div className="space-y-8">
                   {results.intents_data.map((intentResult: any) => (
@@ -1538,16 +1788,46 @@ export default function Dashboard({ theme }) {
                 <TokenUsageStats results={results} selectedProvider={selectedProvider} selectedGoogleModel={selectedGoogleModel} selectedGroqModel={selectedGroqModel} theme={theme} />
               </>
             ) : (
-              <div className="text-center">
-                <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl ${theme === 'dark' ? 'bg-navy-800' : 'bg-gray-100'} flex items-center justify-center`}>
-                  <Sparkles className="w-8 h-8 text-gray-400" />
+              <div className="flex flex-col items-center justify-center py-16 animate-fade-in-up">
+                <div className="relative mb-8">
+                  <div className={`absolute inset-0 bg-primary-500/20 blur-xl rounded-full animate-pulse-glow`}></div>
+                  <div className={`relative w-24 h-24 rounded-3xl ${theme === 'dark' ? 'bg-navy-800' : 'bg-white shadow-md'} border ${theme === 'dark' ? 'border-navy-700' : 'border-gray-100'} flex items-center justify-center transform hover:scale-105 transition-transform duration-300`}>
+                    <Sparkles className="w-12 h-12 text-primary-500" />
+                  </div>
                 </div>
-                <h2 className={`text-xl font-semibold ${theme === 'dark' ? 'text-navy-200' : 'text-gray-800'} mb-2`}>No Results Yet</h2>
-                <p className={`${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'} mb-6`}>
-                  Configure your search settings and run a search to see results here.
+                
+                <h2 className={`text-2xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-3`}>
+                  Ready to Analyze
+                </h2>
+                
+                <p className={`text-center max-w-md ${theme === 'dark' ? 'text-navy-300' : 'text-gray-600'} mb-8 leading-relaxed`}>
+                  You haven't run any searches yet. Configure your brands and queries to see how AI models perceive your products.
                 </p>
-                <button onClick={() => setActiveTab('config')} className="btn-primary">
-                  <Settings className="w-4 h-4 mr-2" /> Go to Configuration
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-2xl w-full mb-10">
+                   <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-navy-800/50 border-navy-700' : 'bg-white border-gray-100 shadow-sm'} flex flex-col items-center text-center`}>
+                      <Target className="w-6 h-6 text-accent-400 mb-2" />
+                      <span className={`font-medium ${theme === 'dark' ? 'text-navy-100' : 'text-gray-800'}`}>Track Visibility</span>
+                      <span className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'} mt-1`}>See where you rank</span>
+                   </div>
+                   <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-navy-800/50 border-navy-700' : 'bg-white border-gray-100 shadow-sm'} flex flex-col items-center text-center`}>
+                      <Users className="w-6 h-6 text-blue-400 mb-2" />
+                      <span className={`font-medium ${theme === 'dark' ? 'text-navy-100' : 'text-gray-800'}`}>Monitor Rivals</span>
+                      <span className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'} mt-1`}>Keep an eye on competitors</span>
+                   </div>
+                   <div className={`p-4 rounded-xl border ${theme === 'dark' ? 'bg-navy-800/50 border-navy-700' : 'bg-white border-gray-100 shadow-sm'} flex flex-col items-center text-center`}>
+                      <Brain className="w-6 h-6 text-emerald-400 mb-2" />
+                      <span className={`font-medium ${theme === 'dark' ? 'text-navy-100' : 'text-gray-800'}`}>AI Sentiment</span>
+                      <span className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'} mt-1`}>Understand the narrative</span>
+                   </div>
+                </div>
+
+                <button 
+                  onClick={() => setActiveTab('config')} 
+                  className="btn-primary flex items-center gap-2 group"
+                >
+                  <Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" /> 
+                  Configure Search
                 </button>
               </div>
             )}

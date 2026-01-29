@@ -9,6 +9,8 @@ import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import ThemeToggler from './components/ThemeToggler';
 
+import { ToastProvider } from './context/ToastContext';
+
 function App() {
   const [theme, setTheme] = useState('dark');
 
@@ -18,35 +20,37 @@ function App() {
 
   return (
     <AuthProvider>
-      <div className={`app ${theme}`}>
-        <ThemeToggler theme={theme} toggleTheme={toggleTheme} />
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<LandingPage theme={theme} />} />
-            <Route path="/login" element={<LoginPage theme={theme} />} />
-            <Route path="/register" element={<RegisterPage theme={theme} />} />
+      <ToastProvider>
+        <div className={`app ${theme}`}>
+          <ThemeToggler theme={theme} toggleTheme={toggleTheme} />
+          <Router>
+            <Routes>
+              {/* Public routes */}
+              <Route path="/" element={<LandingPage theme={theme} />} />
+              <Route path="/login" element={<LoginPage theme={theme} />} />
+              <Route path="/register" element={<RegisterPage theme={theme} />} />
 
-            {/* Protected routes */}
-            <Route
-              path="/app"
-              element={
-                <ProtectedRoute>
-                  <Dashboard theme={theme} />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <ProfilePage theme={theme} />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </Router>
-      </div>
+              {/* Protected routes */}
+              <Route
+                path="/app"
+                element={
+                  <ProtectedRoute>
+                    <Dashboard theme={theme} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/profile"
+                element={
+                  <ProtectedRoute>
+                    <ProfilePage theme={theme} />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </Router>
+        </div>
+      </ToastProvider>
     </AuthProvider>
   );
 }
