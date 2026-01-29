@@ -31,6 +31,7 @@ import {
   LogOut,
   Key,
   Building2,
+  Info,
 } from 'lucide-react';
 import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig, UserBrand, UserIntent } from '../types.ts';
 import { GEMINI_MODELS, GROQ_MODELS } from '../types.ts';
@@ -96,65 +97,118 @@ const StatsComparison = ({ results, theme }: { results: any, theme: string }) =>
 
   return (
     <div className={`${glassCardClass} p-6 mt-8`}>
-      <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'} mb-4`}>Model Comparison</h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="flex items-center gap-2 mb-4">
+        <Sparkles className="w-5 h-5 text-primary-400" />
+        <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'}`}>Model Comparison</h3>
+      </div>
+      
+      <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} mb-6`}>
+        Compare how different AI models perceive your brand against competitors across all search queries.
+      </p>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        {/* Google Gemini Column */}
         <div>
-          <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-primary-300' : 'text-primary-500'} mb-3`}>Google Gemini</h4>
-          <div className="space-y-4">
-             <StatsBar 
-                label="Share of Voice (My Brand vs Total)" 
-                value={stats.google.myBrandMentions} 
-                total={stats.google.totalMentions || 1} 
-                theme={theme}
-                colorClass="bg-primary-500"
-                suffix={` / ${stats.google.totalMentions}`}
-             />
-             <StatsBar 
-                label="#1 Ranking Rate" 
-                value={stats.google.myBrandRank1Mentions} 
-                total={stats.google.myBrandMentions || 1} 
-                theme={theme}
-                colorClass="bg-emerald-500"
-                suffix={` / ${stats.google.myBrandMentions} mentions`}
-             />
+          <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-primary-300' : 'text-primary-500'} mb-4 flex items-center gap-2`}>
+            Google Gemini
+            <span className="text-[10px] px-1.5 py-0.5 rounded border border-primary-500/30 uppercase">With Search</span>
+          </h4>
+          <div className="space-y-6">
+             <div title="Percentage of mentions belonging to your brand out of all brand mentions detected.">
+               <StatsBar 
+                  label="Share of Voice" 
+                  value={stats.google.myBrandMentions} 
+                  total={stats.google.totalMentions || 1} 
+                  theme={theme}
+                  colorClass="bg-primary-500"
+                  suffix={` / ${stats.google.totalMentions} total mentions`}
+               />
+               <p className="text-[11px] text-navy-400 mt-1">How often you appear compared to everyone else.</p>
+             </div>
+
+             <div title="How often your brand was the first one mentioned in the response.">
+               <StatsBar 
+                  label="#1 Ranking Rate" 
+                  value={stats.google.myBrandRank1Mentions} 
+                  total={stats.google.myBrandMentions || 1} 
+                  theme={theme}
+                  colorClass="bg-emerald-500"
+                  suffix={` / ${stats.google.myBrandMentions} of your mentions`}
+               />
+               <p className="text-[11px] text-navy-400 mt-1">Frequency of being the top recommendation.</p>
+             </div>
+
              <div className="grid grid-cols-2 gap-4 mt-2">
-                <div className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>Avg My Rank</div>
+                <div 
+                  className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}
+                  title="Average numerical position of your brand in the response lists (Lower is better)."
+                >
+                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} flex items-center gap-1`}>
+                      Avg My Rank <Info className="w-3 h-3" />
+                    </div>
                     <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{avgRank(stats.google.myBrandRanks) || '-'}</div>
                 </div>
-                <div className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>Avg Comp Rank</div>
+                <div 
+                  className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}
+                  title="Average numerical position of competitor brands (Higher than yours is better)."
+                >
+                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} flex items-center gap-1`}>
+                      Avg Comp Rank <Info className="w-3 h-3" />
+                    </div>
                     <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{avgRank(stats.google.competitorRanks) || '-'}</div>
                 </div>
              </div>
           </div>
         </div>
+
+        {/* Groq Column */}
         <div>
-          <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-accent-300' : 'text-accent-500'} mb-3`}>Groq</h4>
-          <div className="space-y-4">
-             <StatsBar 
-                label="Share of Voice (My Brand vs Total)" 
-                value={stats.groq.myBrandMentions} 
-                total={stats.groq.totalMentions || 1} 
-                theme={theme}
-                colorClass="bg-accent-500"
-                suffix={` / ${stats.groq.totalMentions}`}
-             />
-             <StatsBar 
-                label="#1 Ranking Rate" 
-                value={stats.groq.myBrandRank1Mentions} 
-                total={stats.groq.myBrandMentions || 1} 
-                theme={theme}
-                colorClass="bg-emerald-500"
-                suffix={` / ${stats.groq.myBrandMentions} mentions`}
-             />
+          <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-accent-300' : 'text-accent-500'} mb-4 flex items-center gap-2`}>
+            Groq
+            <span className="text-[10px] px-1.5 py-0.5 rounded border border-accent-500/30 uppercase">Llama 3</span>
+          </h4>
+          <div className="space-y-6">
+             <div title="Percentage of mentions belonging to your brand out of all brand mentions detected.">
+               <StatsBar 
+                  label="Share of Voice" 
+                  value={stats.groq.myBrandMentions} 
+                  total={stats.groq.totalMentions || 1} 
+                  theme={theme}
+                  colorClass="bg-accent-500"
+                  suffix={` / ${stats.groq.totalMentions} total mentions`}
+               />
+               <p className="text-[11px] text-navy-400 mt-1">How often you appear compared to everyone else.</p>
+             </div>
+
+             <div title="How often your brand was the first one mentioned in the response.">
+               <StatsBar 
+                  label="#1 Ranking Rate" 
+                  value={stats.groq.myBrandRank1Mentions} 
+                  total={stats.groq.myBrandMentions || 1} 
+                  theme={theme}
+                  colorClass="bg-emerald-500"
+                  suffix={` / ${stats.groq.myBrandMentions} of your mentions`}
+               />
+               <p className="text-[11px] text-navy-400 mt-1">Frequency of being the top recommendation.</p>
+             </div>
+
              <div className="grid grid-cols-2 gap-4 mt-2">
-                <div className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>Avg My Rank</div>
+                <div 
+                  className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}
+                  title="Average numerical position of your brand in the response lists (Lower is better)."
+                >
+                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} flex items-center gap-1`}>
+                      Avg My Rank <Info className="w-3 h-3" />
+                    </div>
                     <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{avgRank(stats.groq.myBrandRanks) || '-'}</div>
                 </div>
-                <div className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}>
-                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>Avg Comp Rank</div>
+                <div 
+                  className={`p-3 rounded-lg border ${theme === 'dark' ? 'bg-navy-900 border-navy-800' : 'bg-slate-50 border-slate-200'}`}
+                  title="Average numerical position of competitor brands (Higher than yours is better)."
+                >
+                    <div className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'} flex items-center gap-1`}>
+                      Avg Comp Rank <Info className="w-3 h-3" />
+                    </div>
                     <div className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{avgRank(stats.groq.competitorRanks) || '-'}</div>
                 </div>
              </div>
