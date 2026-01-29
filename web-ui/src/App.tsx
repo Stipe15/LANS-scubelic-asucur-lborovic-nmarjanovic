@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { AuthProvider } from './auth/AuthContext';
 import { ProtectedRoute } from './auth/ProtectedRoute';
 import LandingPage from './pages/LandingPage';
+import FAQPage from './pages/FAQPage';
 import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -28,6 +29,7 @@ function App() {
             <Routes>
               {/* Public routes */}
               <Route path="/" element={<LandingPage theme={theme} />} />
+              <Route path="/faq" element={<FAQPage theme={theme} />} />
               <Route path="/login" element={<LoginPage theme={theme} />} />
               <Route path="/register" element={<RegisterPage theme={theme} />} />
 

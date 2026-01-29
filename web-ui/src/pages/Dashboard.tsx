@@ -881,6 +881,16 @@ export default function Dashboard({ theme }) {
                       <Sparkles className="w-4 h-4" />
                       Setup Wizard
                     </Link>
+                    <Link
+                      to="/faq"
+                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+                        theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => setShowMainMenu(false)}
+                    >
+                      <Info className="w-4 h-4" />
+                      FAQ
+                    </Link>
                   </div>
                 )}
               </div>
