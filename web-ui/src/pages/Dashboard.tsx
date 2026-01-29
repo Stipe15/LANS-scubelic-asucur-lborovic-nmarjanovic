@@ -41,6 +41,16 @@ import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { Skeleton } from '../components/ui/Skeleton';
 import { StatsBar } from '../components/ui/StatsBar';
+import { TagInput } from '../components/ui/TagInput';
+import { CollapsibleSection } from '../components/ui/CollapsibleSection';
+
+const INTENT_TEMPLATES = [
+  { id: 'pricing-compare', label: 'Pricing Comparison', prompt: 'Compare the pricing models of [MyBrand] vs [Competitor]. Which offers better value for small businesses?' },
+  { id: 'feature-analysis', label: 'Feature Analysis', prompt: 'What are the key feature differences between [MyBrand] and [Competitor]? Highlight unique selling points.' },
+  { id: 'sentiment-check', label: 'Brand Sentiment', prompt: 'What is the general user sentiment towards [MyBrand] in 2024? Mention common praises and complaints.' },
+  { id: 'alternatives', label: 'Best Alternatives', prompt: 'What are the top 3 alternatives to [Competitor] and why should I consider [MyBrand]?' },
+  { id: 'security-review', label: 'Security Review', prompt: 'How does [MyBrand] compare to [Competitor] in terms of security and compliance certifications?' },
+];
 
 const StatsComparison = ({ results, theme }: { results: any, theme: string }) => {
   if (!results || !results.intents_data) return null;
@@ -601,34 +611,6 @@ export default function Dashboard({ theme }) {
   const yamlOutput = yaml.dump(generateConfig(), { lineWidth: -1 });
 
   // Handlers
-  const addBrand = (type: 'mine' | 'competitors') => {
-    if (type === 'mine') {
-      setMyBrands([...myBrands, '']);
-    } else {
-      setCompetitors([...competitors, '']);
-    }
-  };
-
-  const removeBrand = (type: 'mine' | 'competitors', index: number) => {
-    if (type === 'mine') {
-      setMyBrands(myBrands.filter((_, i) => i !== index));
-    } else {
-      setCompetitors(competitors.filter((_, i) => i !== index));
-    }
-  };
-
-  const updateBrand = (type: 'mine' | 'competitors', index: number, value: string) => {
-    if (type === 'mine') {
-      const updated = [...myBrands];
-      updated[index] = value;
-      setMyBrands(updated);
-    } else {
-      const updated = [...competitors];
-      updated[index] = value;
-      setCompetitors(updated);
-    }
-  };
-
   const addIntent = () => {
     setIntents([...intents, { id: '', prompt: '' }]);
   };
@@ -641,6 +623,41 @@ export default function Dashboard({ theme }) {
     const updated = [...intents];
     updated[index] = { ...updated[index], [field]: value };
     setIntents(updated);
+  };
+
+  const applyTemplate = (templateId: string) => {
+    const template = INTENT_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+    
+    // Replace placeholders if brands are set
+    let prompt = template.prompt;
+    
+    const activeBrands = myBrands.filter(b => b.trim());
+    const activeCompetitors = competitors.filter(c => c.trim());
+    
+    // Create comma-separated lists
+    const brandsText = activeBrands.length > 0 
+      ? (activeBrands.length > 1 
+          ? activeBrands.slice(0, -1).join(', ') + ' and ' + activeBrands.slice(-1)
+          : activeBrands[0])
+      : '[MyBrand]';
+      
+    const competitorsText = activeCompetitors.length > 0 
+      ? (activeCompetitors.length > 1 
+          ? activeCompetitors.slice(0, -1).join(', ') + ' and ' + activeCompetitors.slice(-1)
+          : activeCompetitors[0])
+      : '[Competitor]';
+    
+    prompt = prompt.replace(/\[MyBrand\]/g, brandsText).replace(/\[Competitor\]/g, competitorsText);
+    
+    // Append to existing intents
+    // If the first intent is empty, replace it instead
+    if (intents.length === 1 && !intents[0].id && !intents[0].prompt) {
+        setIntents([{ id: template.id, prompt }]);
+    } else {
+        setIntents([...intents, { id: template.id, prompt }]);
+    }
+    showToast(`Added "${template.label}" template`, 'info');
   };
 
   const copyToClipboard = async () => {
@@ -922,14 +939,15 @@ export default function Dashboard({ theme }) {
         {activeTab === 'config' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Configuration */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4">
+              
               {/* API Key Section */}
-              <section className={`${glassCardClass} p-6`}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Shield className="w-5 h-5 text-primary-400" />
-                  <h2 className="section-title">API Configuration</h2>
-                </div>
-
+              <CollapsibleSection 
+                title="API Configuration" 
+                icon={<Shield className="w-5 h-5 text-primary-400" />}
+                theme={theme}
+                isComplete={!!((selectedProvider === 'both' ? apiKeys.google && apiKeys.groq : apiKeys[selectedProvider]))}
+              >
                 <div className="space-y-4">
                   {/* Provider Selection */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
@@ -1209,16 +1227,16 @@ export default function Dashboard({ theme }) {
                     <span className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-700'}`}>Enable Google Search grounding</span>
                   </div>
                 )}
-              </div>
-            </section>
+                </div>
+              </CollapsibleSection>
 
               {/* Brands Section */}
-              <section className={`${glassCardClass} p-6`}>
-                <div className="flex items-center gap-2 mb-4">
-                  <Target className="w-5 h-5 text-accent-400" />
-                  <h2 className="section-title">Brands to Track</h2>
-                </div>
-
+              <CollapsibleSection 
+                title="Brands to Track" 
+                icon={<Target className="w-5 h-5 text-accent-400" />}
+                theme={theme}
+                isComplete={myBrands.filter(b => b.trim()).length > 0}
+              >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* My Brands */}
                   <div>
@@ -1268,30 +1286,12 @@ export default function Dashboard({ theme }) {
                         </div>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      {myBrands.map((brand, index) => (
-                        <div key={index} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={brand}
-                            onChange={(e) => updateBrand('mine', index, e.target.value)}
-                            placeholder="e.g., YourProduct"
-                            className={`${inputClass} flex-1`}
-                          />
-                          {myBrands.length > 1 && (
-                            <button
-                              onClick={() => removeBrand('mine', index)}
-                              className="btn-danger px-3"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      <button onClick={() => addBrand('mine')} className={`${btnGhostClass} text-sm w-full`}>
-                        <Plus className="w-4 h-4 mr-1" /> Add brand
-                      </button>
-                    </div>
+                    <TagInput 
+                      tags={myBrands.filter(b => b.trim())}
+                      onChange={setMyBrands}
+                      placeholder="Type brand & press Enter"
+                      theme={theme}
+                    />
                   </div>
 
                   {/* Competitors */}
@@ -1341,43 +1341,26 @@ export default function Dashboard({ theme }) {
                         </div>
                       )}
                     </div>
-                    <div className="space-y-2">
-                      {competitors.map((competitor, index) => (
-                        <div key={index} className="flex gap-2">
-                          <input
-                            type="text"
-                            value={competitor}
-                            onChange={(e) => updateBrand('competitors', index, e.target.value)}
-                            placeholder="e.g., CompetitorA"
-                            className={`${inputClass} flex-1`}
-                          />
-                          {competitors.length > 1 && (
-                            <button
-                              onClick={() => removeBrand('competitors', index)}
-                              className="btn-danger px-3"
-                            >
-                              <X className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                      <button
-                        onClick={() => addBrand('competitors')}
-                        className={`${btnGhostClass} text-sm w-full`}
-                      >
-                        <Plus className="w-4 h-4 mr-1" /> Add competitor
-                      </button>
-                    </div>
+                    <TagInput 
+                      tags={competitors.filter(c => c.trim())}
+                      onChange={setCompetitors}
+                      placeholder="Type competitor & press Enter"
+                      theme={theme}
+                    />
                   </div>
                 </div>
-              </section>
+              </CollapsibleSection>
 
               {/* Intents Section */}
-              <section className={`${glassCardClass} p-6`}>
+              <CollapsibleSection 
+                title="Search Queries (Intents)" 
+                icon={<MessageSquare className="w-5 h-5 text-green-400" />}
+                theme={theme}
+                isComplete={intents.filter(i => i.prompt.trim()).length > 0}
+              >
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <MessageSquare className="w-5 h-5 text-green-400" />
-                    <h2 className="section-title">Search Queries (Intents)</h2>
+                    <h2 className="text-sm font-medium opacity-70">Quick Start Templates</h2>
                   </div>
                   
                   {savedIntents.length > 0 && (
@@ -1426,10 +1409,22 @@ export default function Dashboard({ theme }) {
                   )}
                 </div>
 
-                <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-600'} mb-4`}>
-                  Define the questions you want to ask the AI. These should be buyer-intent queries
-                  your customers might ask.
-                </p>
+                {/* Suggestion Rail */}
+                <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
+                  {INTENT_TEMPLATES.map((template) => (
+                    <button
+                      key={template.id}
+                      onClick={() => applyTemplate(template.id)}
+                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-navy-800 border-navy-700 text-navy-300 hover:border-primary-500 hover:text-primary-400'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-primary-500 hover:text-primary-600'
+                      }`}
+                    >
+                      + {template.label}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="space-y-4">
                   {intents.map((intent, index) => (
@@ -1464,7 +1459,7 @@ export default function Dashboard({ theme }) {
                     <Plus className="w-4 h-4 mr-2" /> Add another query
                   </button>
                 </div>
-              </section>
+              </CollapsibleSection>
             </div>
 
             {/* Right Column - Preview & Actions */}
