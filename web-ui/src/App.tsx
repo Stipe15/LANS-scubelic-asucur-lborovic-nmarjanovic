@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
+import SetupWizard from './pages/SetupWizard';
 import ThemeToggler from './components/ThemeToggler';
 
 import { ToastProvider } from './context/ToastContext';
@@ -44,6 +45,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ProfilePage theme={theme} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/setup"
+                element={
+                  <ProtectedRoute>
+                    <SetupWizard theme={theme} />
                   </ProtectedRoute>
                 }
               />

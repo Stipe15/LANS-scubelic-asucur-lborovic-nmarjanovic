@@ -59,7 +59,7 @@ export default function RegisterPage({ theme }: RegisterPageProps) {
 
     try {
       await register(username, email, password);
-      navigate('/app', { replace: true });
+      navigate('/setup', { replace: true });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {
