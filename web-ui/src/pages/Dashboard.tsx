@@ -1544,23 +1544,47 @@ export default function Dashboard({ theme }) {
         ) : (
           <div className={`${glassCardClass} p-8`}> 
             {isRunning ? (
-               <div className="space-y-8 animate-pulse">
-                  <div className="flex justify-between items-center mb-6">
-                    <Skeleton className="h-8 w-64" theme={theme} />
-                    <div className="flex gap-2">
-                        <Skeleton className="h-9 w-20" theme={theme} />
-                        <Skeleton className="h-9 w-20" theme={theme} />
-                    </div>
-                  </div>
-                  {[1, 2].map((i) => (
-                    <div key={i} className={`p-6 rounded-2xl border ${theme === 'dark' ? 'border-navy-700/40 bg-navy-800/20' : 'border-gray-200/40 bg-gray-100/50'}`}>
-                        <div className="flex items-center gap-4 mb-4">
-                            <Skeleton className="w-8 h-8 rounded-lg" theme={theme} />
-                            <Skeleton className="h-6 w-1/2" theme={theme} />
+               <div className="space-y-8">
+                  {/* Loading Indicator */}
+                  <div className="flex flex-col items-center justify-center py-8 animate-fade-in">
+                    <div className="relative mb-6">
+                      <div className="absolute inset-0 bg-primary-500/30 blur-2xl rounded-full animate-pulse"></div>
+                      <div className={`relative w-20 h-20 rounded-2xl ${theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-100'} border shadow-2xl flex items-center justify-center`}>
+                        <div className="relative">
+                           <Loader2 className="w-10 h-10 text-primary-500 animate-spin" />
+                           <div className="absolute inset-0 flex items-center justify-center">
+                              <Sparkles className="w-4 h-4 text-accent-400 animate-pulse" />
+                           </div>
                         </div>
-                        <Skeleton className="h-32 w-full rounded-xl" theme={theme} />
+                      </div>
                     </div>
-                  ))}
+                    <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-2`}>
+                      LLM Answer Watcher is Analyzing
+                    </h3>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-500'} max-w-sm text-center`}>
+                      We're querying the models and extracting brand mentions. This may take a few seconds...
+                    </p>
+                  </div>
+
+                  {/* Skeletons */}
+                  <div className="space-y-8 animate-pulse opacity-40 pointer-events-none">
+                      <div className="flex justify-between items-center mb-6">
+                        <Skeleton className="h-8 w-64" theme={theme} />
+                        <div className="flex gap-2">
+                            <Skeleton className="h-9 w-20" theme={theme} />
+                            <Skeleton className="h-9 w-20" theme={theme} />
+                        </div>
+                      </div>
+                      {[1, 2].map((i) => (
+                        <div key={i} className={`p-6 rounded-2xl border ${theme === 'dark' ? 'border-navy-700/40 bg-navy-800/20' : 'border-gray-200/40 bg-gray-100/50'}`}>
+                            <div className="flex items-center gap-4 mb-4">
+                                <Skeleton className="w-8 h-8 rounded-lg" theme={theme} />
+                                <Skeleton className="h-6 w-1/2" theme={theme} />
+                            </div>
+                            <Skeleton className="h-32 w-full rounded-xl" theme={theme} />
+                        </div>
+                      ))}
+                   </div>
                </div>
             ) : results && results.intents_data && results.intents_data.length > 0 ? (
               <>
