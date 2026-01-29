@@ -33,6 +33,7 @@ import {
   Building2,
   Info,
   FileSpreadsheet,
+  Trash2,
 } from 'lucide-react';
 import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig, UserBrand, UserIntent } from '../types.ts';
 import { GEMINI_MODELS, GROQ_MODELS } from '../types.ts';
@@ -1446,11 +1447,13 @@ export default function Dashboard({ theme }) {
                             className={`${inputClass} resize-none`}
                           />
                         </div>
-                        {intents.length > 1 && (
-                          <button onClick={() => removeIntent(index)} className="btn-danger px-3 py-3">
-                            <X className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button 
+                          onClick={() => removeIntent(index)} 
+                          className="btn-danger p-3"
+                          title="Remove query"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
                   ))}
