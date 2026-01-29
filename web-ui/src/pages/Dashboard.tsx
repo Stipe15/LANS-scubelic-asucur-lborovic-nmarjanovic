@@ -34,6 +34,7 @@ import {
   Info,
   FileSpreadsheet,
   Trash2,
+  Menu,
 } from 'lucide-react';
 import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig, UserBrand, UserIntent } from '../types.ts';
 import { GEMINI_MODELS, GROQ_MODELS } from '../types.ts';
@@ -444,6 +445,7 @@ export default function Dashboard({ theme }) {
   const { user, token, logout } = useAuth();
   const { showToast } = useToast();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMainMenu, setShowMainMenu] = useState(false);
 
   const handleLogout = async () => {
     navigate('/', { replace: true });
@@ -855,6 +857,33 @@ export default function Dashboard({ theme }) {
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
+              <div className="relative">
+                <button
+                  onClick={() => setShowMainMenu(!showMainMenu)}
+                  className={`${btnGhostClass} p-2 ${showMainMenu ? (theme === 'dark' ? 'bg-navy-800 text-white' : 'bg-gray-200 text-gray-900') : ''}`}
+                  title="Menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+                {showMainMenu && (
+                  <div className={`absolute left-0 top-full mt-2 w-56 rounded-xl border p-2 shadow-lg z-100 ${
+                    theme === 'dark'
+                      ? 'bg-navy-900 border-navy-700 text-navy-100'
+                      : 'bg-white border-gray-200 text-gray-900'
+                  }`}>
+                    <Link
+                      to="/setup"
+                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+                        theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => setShowMainMenu(false)}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Setup Wizard
+                    </Link>
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => navigate('/')}
                 className={`${btnGhostClass} p-2`}
