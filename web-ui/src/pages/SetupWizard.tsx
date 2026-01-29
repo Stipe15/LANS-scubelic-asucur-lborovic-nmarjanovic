@@ -22,7 +22,8 @@ import {
   CheckCircle2,
   Edit2,
   MessageSquare,
-  ArrowRight
+  ArrowRight,
+  FastForward
 } from 'lucide-react';
 import { GEMINI_MODELS, GROQ_MODELS, INTENT_TEMPLATES } from '../types';
 
@@ -205,9 +206,7 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
     }
   }, [currentStep]);
 
-  // Save & Exit handler
-  const handleSaveAndExit = useCallback(() => {
-    // State is already auto-saved, just navigate away
+  const handleSkip = useCallback(() => {
     navigate('/app');
   }, [navigate]);
 
@@ -392,6 +391,15 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
   const textClass = isDark ? 'text-navy-100' : 'text-slate-900';
   const mutedClass = isDark ? 'text-navy-400' : 'text-slate-500';
   const btnSecondary = isDark ? 'btn-secondary' : 'btn-secondary-light';
+  
+  // Polished "Add" button class
+  const addBtnClass = `
+    w-full py-3.5 rounded-xl border-2 border-dashed transition-all duration-200 
+    flex items-center justify-center gap-2 font-medium group
+    ${isDark 
+      ? 'border-navy-700 bg-navy-800/20 text-navy-400 hover:border-primary-500/50 hover:bg-primary-500/5 hover:text-primary-400' 
+      : 'border-slate-200 bg-slate-50 text-slate-500 hover:border-primary-500/50 hover:bg-primary-500/5 hover:text-primary-600 shadow-sm'}
+  `;
 
   // Success screen
   if (showSuccess) {
@@ -727,9 +735,9 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
 
               <button
                 onClick={addBrand}
-                className={`${btnSecondary} mt-6 w-full`}
+                className={addBtnClass}
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
                 Add Another Brand Variant
               </button>
             </div>
@@ -776,9 +784,9 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
 
               <button
                 onClick={addCompetitor}
-                className={`${btnSecondary} mt-6 w-full`}
+                className={addBtnClass}
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
                 Add Another Competitor
               </button>
 
@@ -877,9 +885,9 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
                  
                  <button
                     onClick={addQuery}
-                    className={`${btnSecondary} w-full py-3`}
+                    className={addBtnClass}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
+                    <Plus className="w-4 h-4 group-hover:rotate-90 transition-transform duration-200" />
                     Add Custom Query
                   </button>
                   
@@ -996,18 +1004,32 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
       {/* Footer Controls */}
       <footer className={`sticky bottom-0 border-t ${isDark ? 'border-navy-800/50 bg-navy-950/90' : 'border-slate-200 bg-white/90'} backdrop-blur-xl`}>
         <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
-            <button
-              onClick={goBack}
-              disabled={currentStep === 0}
-              className={`px-6 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2 ${
-                 currentStep === 0 
-                 ? 'opacity-0 pointer-events-none' 
-                 : isDark ? 'text-navy-300 hover:bg-navy-800' : 'text-slate-600 hover:bg-slate-100'
-              }`}
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Back
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                onClick={handleSkip}
+                className={`px-6 py-2.5 rounded-xl font-medium transition-all duration-200 flex items-center gap-2 ${
+                  isDark ? 'text-navy-400 hover:text-navy-100 hover:bg-navy-800/50' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <FastForward className="w-4 h-4" />
+                Skip Setup
+              </button>
+              
+              <div className={`w-px h-6 ${isDark ? 'bg-navy-800' : 'bg-slate-200'}`} />
+              
+              <button
+                onClick={goBack}
+                disabled={currentStep === 0}
+                className={`px-6 py-2.5 rounded-xl font-medium transition-colors flex items-center gap-2 ${
+                  currentStep === 0 
+                  ? 'opacity-0 pointer-events-none' 
+                  : isDark ? 'text-navy-300 hover:bg-navy-800' : 'text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <ChevronLeft className="w-4 h-4" />
+                Back
+              </button>
+            </div>
 
             {currentStep === STEPS.length - 1 ? (
               <button
