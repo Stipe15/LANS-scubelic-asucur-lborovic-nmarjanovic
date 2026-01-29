@@ -23,6 +23,9 @@ from llm_answer_watcher.system_prompts import get_provider_default
 from llm_answer_watcher.auth.router import router as auth_router
 from llm_answer_watcher.user_config_router import router as user_config_router
 
+from llm_answer_watcher.llm_runner.gemini_client import GeminiClient
+from llm_answer_watcher.llm_runner.groq_client import GroqClient
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="LLM Answer Watcher API", version="0.2.0")
@@ -38,6 +41,7 @@ origins = [
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex="https?://.*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -64,6 +68,83 @@ app.include_router(user_config_router)
 class ConfigData(BaseModel):
     api_keys: dict[str, str]
     yaml_config: str
+
+class OptimizePromptRequest(BaseModel):
+    prompt: str
+    provider: str
+    api_key: str
+    model_name: str
+    competitors: list[str] = []
+    my_brands: list[str] = []
+
+PROMPT_ENGINEER_SYSTEM_PROMPT_TEMPLATE = """ACT AS: A Professional Prompt Engineer for AI Brand Analysis.
+
+TASK: Transform the user's simple description into a high-quality, 
+analytical search query (Intent) for an LLM.
+
+RULES FOR GENERATING THE PROMPT:
+1. TARGET: The generated prompt must be addressed to another AI (like Gemini or Llama).
+2. STRUCTURE: Tell the AI to use bullet points and bold brand names (**Brand**).
+3. TONE: The generated prompt must demand an objective, unbiased comparison.
+4. CONTEXT:
+   - User's Brand(s): {my_brands_list}
+   - Known Competitors: {competitors_list}
+   
+INSTRUCTION FOR BRAND NAMES:
+You MUST inject the actual brand names from the lists above into the generated prompt. 
+- Replace references to "my brand" or "our brand" with: {my_brands_list}
+- Replace references to "competitors" with: {competitors_list}
+- DO NOT use placeholders like "[MyBrand]" or "[Competitors]". Use the REAL NAMES.
+
+EXAMPLE:
+User Input: "Compare our prices"
+Context: MyBrand: "Apple", Competitors: "Samsung, Google"
+Generated Output: "Analyze the pricing model of **Apple** vs **Samsung** and **Google**. Provide a clear comparison in bullet points. Bold all brand names."
+
+STRICT: Output ONLY the generated prompt text. No introduction."""
+
+@app.post("/optimize_prompt")
+async def optimize_prompt(request: OptimizePromptRequest):
+    """
+    Optimize a simple user prompt using the 'Professional Prompt Engineer' persona.
+    """
+    if not request.api_key:
+        raise HTTPException(status_code=400, detail="API key is required")
+
+    competitors_list = ", ".join([c for c in request.competitors if c.strip()]) or "None provided"
+    my_brands_list = ", ".join([b for b in request.my_brands if b.strip()]) or "None provided"
+    
+    system_prompt = PROMPT_ENGINEER_SYSTEM_PROMPT_TEMPLATE.format(
+        competitors_list=competitors_list,
+        my_brands_list=my_brands_list
+    )
+    
+    logger.info(f"Optimize Prompt Request - My Brands: {my_brands_list}, Competitors: {competitors_list}")
+    logger.debug(f"System Prompt: {system_prompt}")
+
+    user_message = f"User Description: {request.prompt}"
+
+    try:
+        if request.provider == "google":
+            client = GeminiClient(request.model_name, request.api_key, system_prompt)
+        elif request.provider == "groq":
+            client = GroqClient(request.model_name, request.api_key, system_prompt)
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported provider: {request.provider}")
+
+        response = await client.generate_answer(user_message)
+        
+        # Clean up response (remove potential quotes or markdown blocks if the LLM adds them)
+        optimized_prompt = response.answer_text.strip()
+        if optimized_prompt.startswith('"') and optimized_prompt.endswith('"'):
+            optimized_prompt = optimized_prompt[1:-1]
+        
+        return {"optimized_prompt": optimized_prompt}
+
+    except Exception as e:
+        logger.error(f"Prompt optimization failed: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
+
 
 
 def build_runtime_config_from_dict(raw_config: dict, api_keys: dict[str, str]) -> RuntimeConfig:

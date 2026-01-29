@@ -45,6 +45,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { StatsBar } from '../components/ui/StatsBar';
 import { TagInput } from '../components/ui/TagInput';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
+import { PromptOptimizer } from '../components/PromptOptimizer';
 
 const INTENT_TEMPLATES = [
   { id: 'pricing-compare', label: 'Pricing Comparison', prompt: 'Compare the pricing models of [MyBrand] vs [Competitor]. Which offers better value for small businesses?' },
@@ -375,7 +376,7 @@ const FormattedAnswer = ({ text, mentions = [], theme }: { text: string; mention
     });
   };
 
-  const processText = (str: string | JSX.Element): any => {
+  const processText = (str: string | any): any => {
     if (typeof str !== 'string') return str;
 
     const parts = str.split(/(\*\*.*?\*\*)/g);
@@ -1478,13 +1479,27 @@ export default function Dashboard({ theme }) {
                             placeholder="Intent ID (e.g., best-tools)"
                             className={`${inputClass} text-sm`}
                           />
-                          <textarea
-                            value={intent.prompt}
-                            onChange={(e) => updateIntent(index, 'prompt', e.target.value)}
-                            placeholder="What are the best email marketing tools?"
-                            rows={2}
-                            className={`${inputClass} resize-none`}
-                          />
+                          <div className="relative">
+                            <textarea
+                              value={intent.prompt}
+                              onChange={(e) => updateIntent(index, 'prompt', e.target.value)}
+                              placeholder="What are the best email marketing tools?"
+                              rows={3}
+                              className={`${inputClass} resize-none pr-12`}
+                            />
+                            <div className="absolute bottom-2 right-2">
+                              <PromptOptimizer
+                                currentPrompt={intent.prompt}
+                                onOptimize={(newPrompt) => updateIntent(index, 'prompt', newPrompt)}
+                                apiKey={selectedProvider === 'both' ? (apiKeys.google || apiKeys.groq) : apiKeys[selectedProvider]}
+                                provider={selectedProvider === 'both' ? (apiKeys.google ? 'google' : 'groq') : selectedProvider}
+                                modelName={selectedProvider === 'both' ? (apiKeys.google ? selectedGoogleModel : selectedGroqModel) : selectedModel}
+                                competitors={competitors}
+                                myBrands={myBrands}
+                                theme={theme}
+                              />
+                            </div>
+                          </div>
                         </div>
                         <button 
                           onClick={() => removeIntent(index)} 
