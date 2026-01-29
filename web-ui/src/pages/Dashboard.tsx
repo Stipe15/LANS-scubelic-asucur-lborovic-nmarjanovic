@@ -242,29 +242,87 @@ const TokenUsageStats = ({ results, selectedProvider, selectedGoogleModel, selec
     });
   });
 
-  const glassCardClass = theme === 'dark'
-    ? 'glass-card'
-    : 'glass-card-light';
+  const cardStyle = `p-6 ${theme === 'dark' ? 'bg-navy-800/20 border-navy-700/40' : 'bg-gray-100/50 border-gray-200/40'} rounded-2xl border mt-8`;
 
   return (
-    <div className={`${glassCardClass} p-6 mt-8`}>
-      <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'} mb-4`}>Token Usage</h3>
+    <div className={cardStyle}>
+      <div className="flex items-center gap-3 mb-6">
+         <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-primary-500/10 text-primary-500' : 'bg-primary-100 text-primary-600'}`}>
+            <Zap className="w-5 h-5" />
+         </div>
+         <div>
+            <h3 className={`text-xl font-bold ${theme === 'dark' ? 'text-navy-200' : 'text-black'}`}>Token Consumption</h3>
+            <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>Total generated tokens for this search run</p>
+         </div>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {(selectedProvider === 'google' || selectedProvider === 'both') && (
-          <div>
-            <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-primary-300' : 'text-primary-500'} mb-3`}>Google Gemini ({selectedGoogleModel})</h4>
-            <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
-              <div className="flex justify-between"><span>Tokens Used:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{modelInfo.google.used}</span></div>
-            </div>
-          </div>
+           <div className={`relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 ${
+              theme === 'dark' 
+                ? 'bg-navy-900/40 border-navy-800' 
+                : 'bg-white border-slate-200 shadow-sm'
+           }`}>
+              <div className="relative z-10">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                       <div className="p-2.5 rounded-xl bg-primary-500/10 text-primary-500">
+                          <Sparkles className="w-5 h-5" />
+                       </div>
+                       <div>
+                          <h4 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Google Gemini</h4>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>{selectedGoogleModel}</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="mt-2">
+                    <div className={`text-3xl font-bold font-mono tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                       {modelInfo.google.used.toLocaleString()}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-primary-500/20 text-primary-300' : 'bg-primary-100 text-primary-700'}`}>
+                           TOKENS
+                        </span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>generated total</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
         )}
+
         {(selectedProvider === 'groq' || selectedProvider === 'both') && (
-          <div>
-            <h4 className={`font-bold text-lg ${theme === 'dark' ? 'text-accent-300' : 'text-accent-500'} mb-3`}>Groq ({selectedGroqModel})</h4>
-            <div className={`space-y-2 ${theme === 'dark' ? 'text-navy-300' : 'text-black'}`}>
-              <div className="flex justify-between"><span>Tokens Used:</span> <span className={`font-medium ${theme === 'dark' ? 'text-white' : 'text-black'}`}>{modelInfo.groq.used}</span></div>
-            </div>
-          </div>
+           <div className={`relative overflow-hidden rounded-2xl border p-6 transition-all duration-300 ${
+              theme === 'dark' 
+                ? 'bg-navy-900/40 border-navy-800' 
+                : 'bg-white border-slate-200 shadow-sm'
+           }`}>
+              <div className="relative z-10">
+                 <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-3">
+                       <div className="p-2.5 rounded-xl bg-accent-500/10 text-accent-500">
+                          <Zap className="w-5 h-5" />
+                       </div>
+                       <div>
+                          <h4 className={`font-bold ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>Groq</h4>
+                          <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>{selectedGroqModel}</p>
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="mt-2">
+                    <div className={`text-3xl font-bold font-mono tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                       {modelInfo.groq.used.toLocaleString()}
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${theme === 'dark' ? 'bg-accent-500/20 text-accent-300' : 'bg-accent-100 text-accent-700'}`}>
+                           TOKENS
+                        </span>
+                        <span className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-slate-500'}`}>generated total</span>
+                    </div>
+                 </div>
+              </div>
+           </div>
         )}
       </div>
     </div>
