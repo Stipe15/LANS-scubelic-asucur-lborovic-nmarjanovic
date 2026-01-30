@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
 import HistoryPage from './pages/HistoryPage';
+import SettingsPage from './pages/SettingsPage';
 import SetupWizard from './pages/SetupWizard';
 import ThemeToggler from './components/ThemeToggler';
 
@@ -64,6 +65,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SetupWizard theme={theme} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute>
+                    <SettingsPage theme={theme} toggleTheme={toggleTheme} />
                   </ProtectedRoute>
                 }
               />

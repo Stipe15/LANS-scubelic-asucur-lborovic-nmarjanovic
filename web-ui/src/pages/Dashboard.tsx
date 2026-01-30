@@ -926,6 +926,16 @@ export default function Dashboard({ theme }) {
                       Run History
                     </Link>
                     <Link
+                      to="/settings"
+                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+                        theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => setShowMainMenu(false)}
+                    >
+                      <Settings className="w-4 h-4" />
+                      Settings
+                    </Link>
+                    <Link
                       to="/faq"
                       className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
                         theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
