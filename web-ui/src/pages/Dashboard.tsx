@@ -731,7 +731,10 @@ export default function Dashboard({ theme }) {
     try {
       const response = await fetch(`${API_BASE_URL}/run_watcher`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
         body: JSON.stringify({ api_keys: apiKeys, yaml_config: yamlOutput }),
       });
 

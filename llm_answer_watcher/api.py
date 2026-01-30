@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ValidationError
@@ -8,6 +8,7 @@ import sqlite3
 import logging
 import traceback
 
+from llm_answer_watcher.auth.dependencies import get_current_user
 from llm_answer_watcher.storage.db import init_db_if_needed, get_run_summary, get_all_runs
 from llm_answer_watcher.config.schema import (
     WatcherConfig,
@@ -210,7 +211,10 @@ def read_root():
 
 
 @app.post("/run_watcher")
-async def run_watcher_endpoint(config_data: ConfigData):
+async def run_watcher_endpoint(
+    config_data: ConfigData,
+    current_user: dict = Depends(get_current_user),
+):
     """
     Run the LLM Answer Watcher with the provided configuration.
 
@@ -252,8 +256,8 @@ async def run_watcher_endpoint(config_data: ConfigData):
 
     # Run the watcher - call the actual run_all() function
     try:
-        logger.info("Starting run_all() execution...")
-        result = await run_all(runtime_config)
+        logger.info(f"Starting run_all() execution for user {current_user['username']} (id={current_user['id']})...")
+        result = await run_all(runtime_config, user_id=current_user['id'])
         logger.info(f"run_all() completed: run_id={result['run_id']}, success={result['success_count']}/{result['total_queries']}")
     except Exception as e:
         logger.error(f"run_all() failed: {e}", exc_info=True)
@@ -273,13 +277,13 @@ async def run_watcher_endpoint(config_data: ConfigData):
     }
 
 @app.get("/runs")
-async def list_runs():
-    """List all historical runs."""
+async def list_runs(current_user: dict = Depends(get_current_user)):
+    """List all historical runs for the current user."""
     sqlite_db_path = "./output/watcher.db"
     try:
         init_db_if_needed(sqlite_db_path)
         with sqlite3.connect(sqlite_db_path) as conn:
-            runs = get_all_runs(conn)
+            runs = get_all_runs(conn, user_id=current_user["id"])
             return runs
     except Exception as e:
         logger.error(f"Failed to list runs: {e}", exc_info=True)

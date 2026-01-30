@@ -11,6 +11,8 @@ import {
   DollarSign
 } from 'lucide-react';
 
+import { useAuth } from '../auth/AuthContext';
+
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || 
   (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:8000');
@@ -27,12 +29,19 @@ interface Run {
 
 export default function HistoryPage({ theme }: { theme: string }) {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/runs`)
+    if (!token) return;
+
+    fetch(`${API_BASE_URL}/runs`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
       .then(res => {
         if (!res.ok) throw new Error('Failed to fetch runs');
         return res.json();
@@ -46,7 +55,7 @@ export default function HistoryPage({ theme }: { theme: string }) {
         setError('Failed to load history. Make sure the backend is running.');
         setLoading(false);
       });
-  }, []);
+  }, [token]);
 
   const formatDate = (isoString: string) => {
     return new Date(isoString).toLocaleString(undefined, {
