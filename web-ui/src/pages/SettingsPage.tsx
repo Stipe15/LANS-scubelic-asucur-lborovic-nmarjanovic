@@ -1,0 +1,450 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import {
+  Settings,
+  ArrowLeft,
+  Moon,
+  Sun,
+  Bell,
+  Database,
+  Shield,
+  Trash2,
+  Download,
+  Info,
+  LogOut,
+  Mail,
+  Smartphone,
+  Globe,
+  Monitor
+} from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
+import { useToast } from '../context/ToastContext';
+
+// API base URL
+const API_BASE_URL = import.meta.env.VITE_API_URL ||
+  (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:8000');
+
+interface SettingsPageProps {
+  theme: string;
+  toggleTheme: () => void;
+}
+
+export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) {
+  const navigate = useNavigate();
+  const { user, logout, token } = useAuth();
+  const { showToast } = useToast();
+
+  const [notifications, setNotifications] = useState({
+    email: true,
+    browser: false,
+    updates: true,
+    marketing: false
+  });
+
+  const [appearance, setAppearance] = useState({
+    density: 'comfortable',
+    fontSize: 'medium'
+  });
+
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load settings on mount
+  useEffect(() => {
+    if (!token) return;
+    
+    const fetchSettings = async () => {
+        try {
+            const res = await fetch(`${API_BASE_URL}/user/settings`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (Object.keys(data).length > 0) {
+                    if (data.notifications) setNotifications(data.notifications);
+                    if (data.appearance) {
+                        const { theme: savedTheme, ...rest } = data.appearance;
+                        setAppearance(rest);
+                        // Sync theme if different (optional, might cause flicker if App doesn't handle it)
+                        if (savedTheme && savedTheme !== theme) {
+                            toggleTheme(); 
+                        }
+                    }
+                }
+            }
+        } catch (err) {
+            console.error("Failed to load settings", err);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+    fetchSettings();
+  }, [token]); // Run once on mount (and when token changes)
+
+  // Save settings when changed (debounced)
+  useEffect(() => {
+    if (!token || isLoading) return;
+
+    const saveSettings = async () => {
+        try {
+            await fetch(`${API_BASE_URL}/user/settings`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ 
+                    settings: { 
+                        notifications, 
+                        appearance: { ...appearance, theme } // Include theme in saved settings
+                    } 
+                })
+            });
+        } catch (err) {
+            console.error("Failed to save settings", err);
+        }
+    };
+
+    const timer = setTimeout(saveSettings, 1000);
+    return () => clearTimeout(timer);
+  }, [notifications, appearance, theme, token, isLoading]);
+
+
+  const handleLogout = async () => {
+    navigate('/', { replace: true });
+    await logout();
+  };
+
+  const handleClearHistory = async () => {
+    if (!confirm('Are you sure you want to clear all your search history? This action cannot be undone.')) return;
+    
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`${API_BASE_URL}/user/history`, {
+          method: 'DELETE',
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (res.ok) {
+          showToast('Search history cleared successfully', 'success');
+      } else {
+          throw new Error('Failed to clear history');
+      }
+    } catch (error) {
+      showToast('Failed to clear history', 'error');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleExportData = async () => {
+    setIsExporting(true);
+    try {
+        const res = await fetch(`${API_BASE_URL}/user/export`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!res.ok) throw new Error("Export failed");
+        
+        const data = await res.json();
+        
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `user-export-${new Date().toISOString().split('T')[0]}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        showToast('Data exported successfully', 'success');
+    } catch (error) {
+        showToast('Failed to export data', 'error');
+        console.error(error);
+    } finally {
+        setIsExporting(false);
+    }
+  };
+
+  const glassCardClass = theme === 'dark'
+    ? 'glass-card'
+    : 'glass-card-light';
+
+  const toggleClass = (isActive: boolean) => `
+    relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+    transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 
+    ${isActive ? 'bg-primary-500' : (theme === 'dark' ? 'bg-navy-700' : 'bg-gray-200')}
+  `;
+
+  const toggleSpanClass = (isActive: boolean) => `
+    pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 
+    transition duration-200 ease-in-out ${isActive ? 'translate-x-5' : 'translate-x-0'}
+  `;
+
+  return (
+    <div className={`min-h-screen ${theme === 'dark' ? 'bg-navy-950 text-white' : 'light-mode-bg text-gray-900'} px-4 py-8`}>
+      <div className="max-w-4xl mx-auto">
+         {/* Background gradient for light mode */}
+         {theme === 'light' && (
+          <div className="fixed inset-0 bg-slate-100/50 pointer-events-none -z-10" />
+        )}
+
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => navigate('/app')}
+              className={`p-2 rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-navy-800 text-navy-300' : 'hover:bg-gray-200 text-gray-600'}`}
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </button>
+            <div>
+              <h1 className="text-3xl font-bold flex items-center gap-3">
+                <Settings className="w-8 h-8 text-primary-500" />
+                Settings
+              </h1>
+              <p className={`mt-1 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                Manage your application preferences and account
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          
+          {/* Appearance Section */}
+          <div className={`${glassCardClass} p-6`}>
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+              <Monitor className="w-5 h-5 text-primary-400" />
+              Appearance
+            </h2>
+            
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium">Theme Mode</h3>
+                  <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                    Toggle between dark and light themes
+                  </p>
+                </div>
+                <button
+                  onClick={toggleTheme}
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg border transition-all ${
+                    theme === 'dark' 
+                      ? 'bg-navy-800 border-navy-700 hover:bg-navy-700' 
+                      : 'bg-white border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  {theme === 'dark' ? (
+                    <>
+                      <Sun className="w-4 h-4 text-yellow-400" />
+                      <span>Light Mode</span>
+                    </>
+                  ) : (
+                    <>
+                      <Moon className="w-4 h-4 text-primary-500" />
+                      <span>Dark Mode</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
+               <div className={`h-px ${theme === 'dark' ? 'bg-navy-800' : 'bg-gray-200'}`} />
+
+               <div className="flex items-center justify-between">
+                 <div>
+                    <h3 className="font-medium">Interface Density</h3>
+                    <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                      Adjust the spacing of UI elements
+                    </p>
+                 </div>
+                 <div className="flex gap-2">
+                    {['compact', 'comfortable'].map((density) => (
+                       <button
+                          key={density}
+                          onClick={() => setAppearance({ ...appearance, density })}
+                          className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                             appearance.density === density
+                               ? (theme === 'dark' ? 'bg-primary-500/20 border-primary-500 text-primary-300' : 'bg-primary-50 border-primary-500 text-primary-700')
+                               : (theme === 'dark' ? 'bg-navy-800 border-navy-700 text-navy-400' : 'bg-white border-gray-200 text-gray-600')
+                          }`}
+                       >
+                          {density.charAt(0).toUpperCase() + density.slice(1)}
+                       </button>
+                    ))}
+                 </div>
+               </div>
+            </div>
+          </div>
+
+          {/* Notifications Section */}
+          <div className={`${glassCardClass} p-6`}>
+            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+              <Bell className="w-5 h-5 text-accent-400" />
+              Notifications
+            </h2>
+
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-navy-800' : 'bg-gray-100'}`}>
+                       <Mail className="w-4 h-4 text-primary-500" />
+                    </div>
+                    <div>
+                       <h3 className="font-medium">Email Notifications</h3>
+                       <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                          Receive weekly summaries and alerts
+                       </p>
+                    </div>
+                 </div>
+                 <button 
+                    onClick={() => setNotifications({ ...notifications, email: !notifications.email })}
+                    className={toggleClass(notifications.email)}
+                 >
+                    <span className={toggleSpanClass(notifications.email)} />
+                 </button>
+              </div>
+
+              <div className="flex items-center justify-between">
+                 <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-navy-800' : 'bg-gray-100'}`}>
+                       <Smartphone className="w-4 h-4 text-accent-500" />
+                    </div>
+                    <div>
+                       <h3 className="font-medium">Browser Notifications</h3>
+                       <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                          Get real-time alerts when scans finish
+                       </p>
+                    </div>
+                 </div>
+                 <button 
+                    onClick={() => setNotifications({ ...notifications, browser: !notifications.browser })}
+                    className={toggleClass(notifications.browser)}
+                 >
+                    <span className={toggleSpanClass(notifications.browser)} />
+                 </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Data Management */}
+          <div className={`${glassCardClass} p-6`}>
+             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+               <Database className="w-5 h-5 text-emerald-400" />
+               Data Management
+             </h2>
+
+             <div className="space-y-4">
+                <button
+                   onClick={handleExportData}
+                   disabled={isExporting}
+                   className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                      theme === 'dark' 
+                        ? 'bg-navy-800/50 border-navy-700 hover:bg-navy-800 hover:border-navy-600' 
+                        : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                   }`}
+                >
+                   <div className="flex items-center gap-3">
+                      <Download className="w-5 h-5 text-emerald-500" />
+                      <div className="text-left">
+                         <h3 className="font-medium">Export All Data</h3>
+                         <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                            Download a copy of your configuration and history
+                         </p>
+                      </div>
+                   </div>
+                   {isExporting ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-emerald-500 border-t-transparent" />
+                   ) : (
+                      <span className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>JSON</span>
+                   )}
+                </button>
+
+                <button
+                   onClick={handleClearHistory}
+                   disabled={isDeleting}
+                   className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                      theme === 'dark' 
+                        ? 'bg-navy-800/50 border-navy-700 hover:bg-rose-900/10 hover:border-rose-900/30' 
+                        : 'bg-white border-gray-200 hover:bg-rose-50 hover:border-rose-200'
+                   } group`}
+                >
+                   <div className="flex items-center gap-3">
+                      <Trash2 className="w-5 h-5 text-rose-500 group-hover:text-rose-600" />
+                      <div className="text-left">
+                         <h3 className="font-medium group-hover:text-rose-600 transition-colors">Clear Search History</h3>
+                         <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                            Permanently delete all past search runs
+                         </p>
+                      </div>
+                   </div>
+                   {isDeleting && (
+                      <div className="animate-spin rounded-full h-5 w-5 border-2 border-rose-500 border-t-transparent" />
+                   )}
+                </button>
+             </div>
+          </div>
+
+          {/* Account */}
+          <div className={`${glassCardClass} p-6`}>
+             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-blue-400" />
+                Account
+             </h2>
+
+             <div className="space-y-4">
+                <div className="flex items-center justify-between p-4 rounded-xl bg-primary-500/5 border border-primary-500/10">
+                   <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary-500/10 flex items-center justify-center text-primary-500 font-bold">
+                         {user?.username?.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                         <h3 className="font-medium">{user?.username}</h3>
+                         <p className={`text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>{user?.email}</p>
+                      </div>
+                   </div>
+                   <button 
+                      onClick={() => navigate('/profile')}
+                      className={`text-sm font-medium ${theme === 'dark' ? 'text-primary-400 hover:text-primary-300' : 'text-primary-600 hover:text-primary-700'}`}
+                   >
+                      Manage Keys
+                   </button>
+                </div>
+
+                <button
+                   onClick={handleLogout}
+                   className={`w-full flex items-center justify-center gap-2 p-3 rounded-xl border border-transparent font-medium transition-colors ${
+                      theme === 'dark' 
+                        ? 'bg-rose-500/10 text-rose-400 hover:bg-rose-500/20' 
+                        : 'bg-rose-50 text-rose-600 hover:bg-rose-100'
+                   }`}
+                >
+                   <LogOut className="w-4 h-4" />
+                   Sign Out
+                </button>
+             </div>
+          </div>
+
+          {/* About */}
+          <div className="text-center py-6">
+             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 mb-4 shadow-lg shadow-primary-500/20">
+                <Settings className="w-6 h-6 text-white" />
+             </div>
+             <h3 className="text-lg font-bold mb-1">LLM Answer Watcher</h3>
+             <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'} mb-4`}>
+                Version 0.2.0-beta
+             </p>
+             <div className="flex items-center justify-center gap-4 text-sm">
+                <a href="#" className="hover:underline opacity-70 hover:opacity-100">Documentation</a>
+                <span>•</span>
+                <a href="#" className="hover:underline opacity-70 hover:opacity-100">Privacy Policy</a>
+                <span>•</span>
+                <a href="#" className="hover:underline opacity-70 hover:opacity-100">Terms of Service</a>
+             </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  );
+}

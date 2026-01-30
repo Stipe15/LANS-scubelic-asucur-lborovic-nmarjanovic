@@ -16,6 +16,11 @@ from llm_answer_watcher.storage.db import (
     get_user_brands,
     get_user_intents,
     init_db_if_needed,
+    get_user_api_keys,
+    delete_all_runs_for_user,
+    get_user_settings,
+    upsert_user_settings,
+    get_all_runs,
 )
 
 logger = logging.getLogger(__name__)
@@ -173,3 +178,94 @@ async def remove_intent(
             detail="Intent not found",
         )
     return {"message": "Intent deleted"}
+
+
+# ----------------------------------------------------------------------------
+# Settings & Data Management Endpoints
+# ----------------------------------------------------------------------------
+
+class SettingsUpdate(BaseModel):
+    settings: dict
+
+class ExportResponse(BaseModel):
+    user: dict
+    brands: list[BrandResponse]
+    intents: list[IntentResponse]
+    api_keys: list[dict]
+    settings: dict
+    runs_summary: list[dict]
+    export_date: str
+
+@router.get("/settings")
+async def get_settings(
+    current_user: dict = Depends(get_current_user),
+    db_path: str = Depends(get_db_path),
+):
+    """Get user settings."""
+    init_db_if_needed(db_path)
+    with sqlite3.connect(db_path) as conn:
+        settings = get_user_settings(conn, current_user["id"])
+    return settings or {}
+
+@router.put("/settings")
+async def update_settings(
+    settings_data: SettingsUpdate,
+    current_user: dict = Depends(get_current_user),
+    db_path: str = Depends(get_db_path),
+):
+    """Update user settings."""
+    init_db_if_needed(db_path)
+    import json
+    with sqlite3.connect(db_path) as conn:
+        upsert_user_settings(conn, current_user["id"], json.dumps(settings_data.settings))
+    return {"message": "Settings updated"}
+
+@router.delete("/history")
+async def clear_history(
+    current_user: dict = Depends(get_current_user),
+    db_path: str = Depends(get_db_path),
+):
+    """Delete all search history (runs) for the current user."""
+    init_db_if_needed(db_path)
+    with sqlite3.connect(db_path) as conn:
+        count = delete_all_runs_for_user(conn, current_user["id"])
+    return {"message": f"Deleted {count} runs"}
+
+@router.get("/export", response_model=ExportResponse)
+async def export_data(
+    current_user: dict = Depends(get_current_user),
+    db_path: str = Depends(get_db_path),
+):
+    """Export all user data."""
+    from datetime import datetime
+    
+    init_db_if_needed(db_path)
+    with sqlite3.connect(db_path) as conn:
+        brands = get_user_brands(conn, current_user["id"])
+        intents = get_user_intents(conn, current_user["id"])
+        keys = get_user_api_keys(conn, current_user["id"])
+        settings = get_user_settings(conn, current_user["id"])
+        runs = get_all_runs(conn, current_user["id"])
+
+    # Sanitize user info
+    user_info = {
+        "username": current_user["username"],
+        "email": current_user["email"],
+        "created_at": current_user["created_at"],
+    }
+    
+    # Format keys (metadata only)
+    formatted_keys = [
+        {"provider": k["provider"], "key_name": k["key_name"], "created_at": k["created_at"]}
+        for k in keys
+    ]
+
+    return ExportResponse(
+        user=user_info,
+        brands=[BrandResponse(**b) for b in brands],
+        intents=[IntentResponse(**i) for i in intents],
+        api_keys=formatted_keys,
+        settings=settings or {},
+        runs_summary=runs,
+        export_date=datetime.now().isoformat()
+    )

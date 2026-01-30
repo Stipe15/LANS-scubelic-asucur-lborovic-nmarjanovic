@@ -32,7 +32,7 @@ from ..utils.time import utc_timestamp
 logger = logging.getLogger(__name__)
 
 # Current schema version - increment when migrations are added
-CURRENT_SCHEMA_VERSION = 9
+CURRENT_SCHEMA_VERSION = 10
 
 
 def init_db_if_needed(db_path: str) -> None:
@@ -202,8 +202,10 @@ def apply_migrations(
                 _migrate_to_v8(conn)
             elif target_version == 9:
                 _migrate_to_v9(conn)
+            elif target_version == 10:
+                _migrate_to_v10(conn)
             # Future migrations go here:
-            # elif target_version == 10:
+            # elif target_version == 11:
             #     _migrate_to_v10(conn)
             else:
                 raise ValueError(f"No migration defined for version {target_version}")
@@ -880,6 +882,26 @@ def _migrate_to_v9(conn: sqlite3.Connection) -> None:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_runs_user ON runs(user_id)")
 
     logger.debug("Added user_id to runs table (schema v9)")
+
+
+def _migrate_to_v10(conn: sqlite3.Connection) -> None:
+    """
+    Migrate database schema to version 10.
+
+    Adds user_settings table to store user preferences.
+
+    Args:
+        conn: Active SQLite database connection in transaction
+    """
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS user_settings (
+            user_id INTEGER PRIMARY KEY,
+            settings_json TEXT NOT NULL,
+            updated_at TEXT NOT NULL,
+            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+        )
+    """)
+    logger.debug("Created user_settings table (schema v10)")
 
 
 # ============================================================================
@@ -2578,4 +2600,80 @@ def get_all_runs(conn: sqlite3.Connection, user_id: int | None = None) -> list[d
             "output_tokens": row[6] or 0,
         })
     return runs
+
+
+def delete_all_runs_for_user(conn: sqlite3.Connection, user_id: int) -> int:
+    """
+    Delete all runs for a specific user.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: User ID
+
+    Returns:
+        Number of runs deleted
+    """
+    # Get run_ids first
+    cursor = conn.execute("SELECT run_id FROM runs WHERE user_id = ?", (user_id,))
+    run_ids = [row[0] for row in cursor.fetchall()]
+    
+    if not run_ids:
+        return 0
+
+    # Delete runs (cascading should handle the rest if PRAGMA foreign_keys = ON)
+    cursor = conn.execute("DELETE FROM runs WHERE user_id = ?", (user_id,))
+    return cursor.rowcount
+
+
+# ============================================================================
+# User Settings CRUD Operations
+# ============================================================================
+
+
+def upsert_user_settings(conn: sqlite3.Connection, user_id: int, settings_json: str) -> None:
+    """
+    Create or update user settings.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: User ID
+        settings_json: JSON string of settings
+    """
+    timestamp = utc_timestamp()
+    conn.execute(
+        """
+        INSERT INTO user_settings (user_id, settings_json, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(user_id) DO UPDATE SET
+            settings_json = excluded.settings_json,
+            updated_at = excluded.updated_at
+        """,
+        (user_id, settings_json, timestamp),
+    )
+
+
+def get_user_settings(conn: sqlite3.Connection, user_id: int) -> dict | None:
+    """
+    Get user settings.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: User ID
+
+    Returns:
+        Dict of settings or None
+    """
+    cursor = conn.execute(
+        "SELECT settings_json FROM user_settings WHERE user_id = ?",
+        (user_id,),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    
+    import json
+    try:
+        return json.loads(row[0])
+    except json.JSONDecodeError:
+        return {}
 
