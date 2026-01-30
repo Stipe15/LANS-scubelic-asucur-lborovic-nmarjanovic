@@ -123,6 +123,12 @@ export default function LandingPage({ theme }) {
             </div>
 
             <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate('/faq')}
+                className={`btn-ghost text-sm ${theme === 'dark' ? 'text-navy-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
+              >
+                FAQ
+              </button>
               <a
                 href="https://github.com/nibzard/llm-answer-watcher"
                 target="_blank"

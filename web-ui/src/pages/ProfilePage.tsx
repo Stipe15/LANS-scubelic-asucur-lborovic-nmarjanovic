@@ -17,7 +17,7 @@ import {
   Building2,
   Search,
 } from 'lucide-react';
-import { UserBrand, UserIntent } from '../types';
+import type { UserBrand, UserIntent } from '../types';
 
 // API base URL - same pattern as Dashboard
 const API_BASE_URL = import.meta.env.VITE_API_URL ||

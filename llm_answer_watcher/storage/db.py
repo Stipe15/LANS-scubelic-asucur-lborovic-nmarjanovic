@@ -32,7 +32,7 @@ from ..utils.time import utc_timestamp
 logger = logging.getLogger(__name__)
 
 # Current schema version - increment when migrations are added
-CURRENT_SCHEMA_VERSION = 8
+CURRENT_SCHEMA_VERSION = 9
 
 
 def init_db_if_needed(db_path: str) -> None:
@@ -200,9 +200,11 @@ def apply_migrations(
                 _migrate_to_v7(conn)
             elif target_version == 8:
                 _migrate_to_v8(conn)
+            elif target_version == 9:
+                _migrate_to_v9(conn)
             # Future migrations go here:
-            # elif target_version == 8:
-            #     _migrate_to_v8(conn)
+            # elif target_version == 10:
+            #     _migrate_to_v10(conn)
             else:
                 raise ValueError(f"No migration defined for version {target_version}")
 
@@ -860,6 +862,26 @@ def _migrate_to_v8(conn: sqlite3.Connection) -> None:
     logger.debug("Created user_brands and user_intents tables (schema v8)")
 
 
+def _migrate_to_v9(conn: sqlite3.Connection) -> None:
+    """
+    Migrate database schema to version 9.
+
+    Adds user isolation to runs:
+    - Adds user_id column to runs table (nullable for backward compatibility)
+    - Creates index on user_id
+
+    Args:
+        conn: Active SQLite database connection in transaction
+    """
+    # Add user_id column to runs table
+    conn.execute("ALTER TABLE runs ADD COLUMN user_id INTEGER REFERENCES users(id) ON DELETE CASCADE")
+
+    # Create index for user filtering
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_runs_user ON runs(user_id)")
+
+    logger.debug("Added user_id to runs table (schema v9)")
+
+
 # ============================================================================
 # Database Operations (CRUD)
 # ============================================================================
@@ -871,6 +893,7 @@ def insert_run(
     timestamp_utc: str,
     total_intents: int,
     total_models: int,
+    user_id: int | None = None,
 ) -> None:
     """
     Insert a new run record into the runs table.
@@ -888,6 +911,7 @@ def insert_run(
         timestamp_utc: ISO 8601 timestamp with 'Z' suffix (e.g., "2025-11-02T08:00:00Z")
         total_intents: Number of buyer-intent queries in this run
         total_models: Number of LLM models being queried per intent
+        user_id: Optional user ID for multi-user isolation
 
     Raises:
         sqlite3.Error: If database operation fails
@@ -899,7 +923,8 @@ def insert_run(
         ...         run_id="2025-11-02T08-00-00Z",
         ...         timestamp_utc="2025-11-02T08:00:00Z",
         ...         total_intents=3,
-        ...         total_models=2
+        ...         total_models=2,
+        ...         user_id=1
         ...     )
         ...     conn.commit()
 
@@ -927,13 +952,14 @@ def insert_run(
             timestamp_utc,
             total_intents,
             total_models,
-            total_cost_usd
-        ) VALUES (?, ?, ?, ?, 0.0)
+            total_cost_usd,
+            user_id
+        ) VALUES (?, ?, ?, ?, 0.0, ?)
         """,
-        (run_id, timestamp_utc, total_intents, total_models),
+        (run_id, timestamp_utc, total_intents, total_models, user_id),
     )
     logger.debug(
-        f"Inserted run {run_id} with {total_intents} intents, {total_models} models"
+        f"Inserted run {run_id} with {total_intents} intents, {total_models} models (user_id={user_id})"
     )
 
 
@@ -2493,3 +2519,63 @@ def delete_user_intent(
         (intent_id, user_id),
     )
     return cursor.rowcount > 0
+
+def get_all_runs(conn: sqlite3.Connection, user_id: int | None = None) -> list[dict]:
+    """
+    Retrieve a list of all historical runs with token usage.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: Optional user ID to filter runs (if provided, only returns runs for this user)
+
+    Returns:
+        List of run summary dicts, ordered by timestamp descending.
+    """
+    # SQLite JSON extract syntax: json_extract(column, '$.key')
+    
+    query = """
+        SELECT 
+            r.run_id, 
+            r.timestamp_utc, 
+            r.total_intents, 
+            r.total_models, 
+            r.total_cost_usd,
+            (
+                SELECT SUM(
+                    COALESCE(json_extract(usage_meta_json, '$.prompt_tokens'), 0)
+                ) 
+                FROM answers_raw 
+                WHERE run_id = r.run_id
+            ) as input_tokens,
+            (
+                SELECT SUM(
+                    COALESCE(json_extract(usage_meta_json, '$.completion_tokens'), 0)
+                ) 
+                FROM answers_raw 
+                WHERE run_id = r.run_id
+            ) as output_tokens
+        FROM runs r
+    """
+    
+    params = []
+    if user_id is not None:
+        query += " WHERE r.user_id = ?"
+        params.append(user_id)
+        
+    query += " ORDER BY r.timestamp_utc DESC"
+    
+    cursor = conn.execute(query, tuple(params))
+    
+    runs = []
+    for row in cursor.fetchall():
+        runs.append({
+            "run_id": row[0],
+            "timestamp_utc": row[1],
+            "total_intents": row[2],
+            "total_models": row[3],
+            "total_cost_usd": row[4],
+            "input_tokens": row[5] or 0,
+            "output_tokens": row[6] or 0,
+        })
+    return runs
+

@@ -45,6 +45,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { StatsBar } from '../components/ui/StatsBar';
 import { TagInput } from '../components/ui/TagInput';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
+import { PromptOptimizer } from '../components/PromptOptimizer';
 
 const INTENT_TEMPLATES = [
   { id: 'pricing-compare', label: 'Pricing Comparison', prompt: 'Compare the pricing models of [MyBrand] vs [Competitor]. Which offers better value for small businesses?' },
@@ -375,7 +376,7 @@ const FormattedAnswer = ({ text, mentions = [], theme }: { text: string; mention
     });
   };
 
-  const processText = (str: string | JSX.Element): any => {
+  const processText = (str: string | any): any => {
     if (typeof str !== 'string') return str;
 
     const parts = str.split(/(\*\*.*?\*\*)/g);
@@ -515,6 +516,36 @@ export default function Dashboard({ theme }) {
       setSelectedProvider(providerParam);
     }
   }, [searchParams]);
+
+  // Handle runId and tab params
+  useEffect(() => {
+    const runIdParam = searchParams.get('runId');
+    const tabParam = searchParams.get('tab');
+
+    if (tabParam === 'results') {
+      setActiveTab('results');
+    }
+
+    if (runIdParam) {
+      setRunId(runIdParam);
+      // Fetch results for the run
+      fetch(`${API_BASE_URL}/results/${runIdParam}`, {
+         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to fetch results');
+      })
+      .then(data => {
+         setResults(data);
+         setActiveTab('results');
+      })
+      .catch(err => {
+        console.error("Failed to load run results", err);
+        showToast("Failed to load run results", "error");
+      });
+    }
+  }, [searchParams, token]);
 
   // State
   const [activeTab, setActiveTab] = useState<'config' | 'results'>('config');
@@ -700,7 +731,10 @@ export default function Dashboard({ theme }) {
     try {
       const response = await fetch(`${API_BASE_URL}/run_watcher`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}` 
+        },
         body: JSON.stringify({ api_keys: apiKeys, yaml_config: yamlOutput }),
       });
 
@@ -881,6 +915,26 @@ export default function Dashboard({ theme }) {
                       <Sparkles className="w-4 h-4" />
                       Setup Wizard
                     </Link>
+                    <Link
+                      to="/history"
+                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+                        theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => setShowMainMenu(false)}
+                    >
+                      <Clock className="w-4 h-4" />
+                      Run History
+                    </Link>
+                    <Link
+                      to="/faq"
+                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+                        theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => setShowMainMenu(false)}
+                    >
+                      <Info className="w-4 h-4" />
+                      FAQ
+                    </Link>
                   </div>
                 )}
               </div>
@@ -1047,14 +1101,14 @@ export default function Dashboard({ theme }) {
                       <div className="mt-2 relative">
                         <button
                           onClick={() => setShowKeyDropdown(prev => ({ ...prev, [selectedProvider]: !prev[selectedProvider] }))}
-                          className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                          className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
                         >
                           <Key className="w-3 h-3" /> Use saved key <ChevronDown className="w-3 h-3" />
                         </button>
                         
                         {showKeyDropdown[selectedProvider] && (
-                          <div className={`absolute left-0 top-full mt-1 w-full rounded-lg border shadow-lg z-20 ${
-                            theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                          <div className={`absolute left-0 top-full mt-2 w-full rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
+                            theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
                           }`}>
                             {savedKeys.filter(k => k.provider === selectedProvider).map(key => (
                               <button
@@ -1063,8 +1117,8 @@ export default function Dashboard({ theme }) {
                                   loadSavedKey(selectedProvider, key.key_name);
                                   setShowKeyDropdown(prev => ({ ...prev, [selectedProvider]: false }));
                                 }}
-                                className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
-                                  theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-slate-100 text-black'
+                                className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                                  theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
                                 }`}
                               >
                                 {key.key_name || 'Default Key'}
@@ -1279,14 +1333,14 @@ export default function Dashboard({ theme }) {
                         <div className="relative">
                           <button
                             onClick={() => setShowBrandDropdown(!showBrandDropdown)}
-                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                            className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
                           >
                             <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
                           </button>
                           
                           {showBrandDropdown && (
-                            <div className={`absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-lg z-20 ${
-                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                            <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
+                              theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
                             }`}>
                               {savedBrands.filter(b => b.is_mine).map(brand => (
                                 <button
@@ -1304,8 +1358,8 @@ export default function Dashboard({ theme }) {
                                     }
                                     setShowBrandDropdown(false);
                                   }}
-                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
-                                    theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-slate-100 text-black'
+                                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                                    theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
                                   }`}
                                 >
                                   {brand.brand_name}
@@ -1335,14 +1389,14 @@ export default function Dashboard({ theme }) {
                         <div className="relative">
                           <button
                             onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
-                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                            className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
                           >
                             <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
                           </button>
                           
                           {showCompetitorDropdown && (
-                            <div className={`absolute right-0 top-full mt-1 w-48 rounded-lg border shadow-lg z-20 ${
-                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                            <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
+                              theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
                             }`}>
                               {savedBrands.filter(b => !b.is_mine).map(brand => (
                                 <button
@@ -1359,8 +1413,8 @@ export default function Dashboard({ theme }) {
                                     }
                                     setShowCompetitorDropdown(false);
                                   }}
-                                  className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
-                                    theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-slate-100 text-black'
+                                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                                    theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
                                   }`}
                                 >
                                   {brand.brand_name}
@@ -1397,14 +1451,14 @@ export default function Dashboard({ theme }) {
                     <div className="relative">
                       <button
                         onClick={() => setShowIntentDropdown(!showIntentDropdown)}
-                        className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
+                        className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
                       >
                         <MessageSquare className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
                       </button>
                       
                       {showIntentDropdown && (
-                        <div className={`absolute right-0 top-full mt-1 w-64 rounded-lg border shadow-lg z-20 ${
-                          theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
+                        <div className={`absolute right-0 top-full mt-2 w-64 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
+                          theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
                         }`}>
                           {savedIntents.map(intent => (
                             <button
@@ -1423,8 +1477,8 @@ export default function Dashboard({ theme }) {
                                 }
                                 setShowIntentDropdown(false);
                               }}
-                              className={`w-full text-left px-3 py-2 text-sm hover:bg-opacity-10 first:rounded-t-lg last:rounded-b-lg ${
-                                theme === 'dark' ? 'hover:bg-white text-navy-100' : 'hover:bg-black text-gray-900'
+                              className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
+                                theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
                               }`}
                             >
                               <div className="font-medium">{intent.intent_alias}</div>
@@ -1468,13 +1522,27 @@ export default function Dashboard({ theme }) {
                             placeholder="Intent ID (e.g., best-tools)"
                             className={`${inputClass} text-sm`}
                           />
-                          <textarea
-                            value={intent.prompt}
-                            onChange={(e) => updateIntent(index, 'prompt', e.target.value)}
-                            placeholder="What are the best email marketing tools?"
-                            rows={2}
-                            className={`${inputClass} resize-none`}
-                          />
+                          <div className="relative">
+                            <textarea
+                              value={intent.prompt}
+                              onChange={(e) => updateIntent(index, 'prompt', e.target.value)}
+                              placeholder="What are the best email marketing tools?"
+                              rows={3}
+                              className={`${inputClass} resize-none pr-12`}
+                            />
+                            <div className="absolute bottom-2 right-2">
+                              <PromptOptimizer
+                                currentPrompt={intent.prompt}
+                                onOptimize={(newPrompt) => updateIntent(index, 'prompt', newPrompt)}
+                                apiKey={selectedProvider === 'both' ? (apiKeys.google || apiKeys.groq) : apiKeys[selectedProvider]}
+                                provider={selectedProvider === 'both' ? (apiKeys.google ? 'google' : 'groq') : selectedProvider}
+                                modelName={selectedProvider === 'both' ? (apiKeys.google ? selectedGoogleModel : selectedGroqModel) : selectedModel}
+                                competitors={competitors}
+                                myBrands={myBrands}
+                                theme={theme}
+                              />
+                            </div>
+                          </div>
                         </div>
                         <button 
                           onClick={() => removeIntent(index)} 
