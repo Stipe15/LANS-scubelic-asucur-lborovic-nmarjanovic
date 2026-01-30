@@ -8,7 +8,7 @@ import sqlite3
 import logging
 import traceback
 
-from llm_answer_watcher.storage.db import init_db_if_needed, get_run_summary
+from llm_answer_watcher.storage.db import init_db_if_needed, get_run_summary, get_all_runs
 from llm_answer_watcher.config.schema import (
     WatcherConfig,
     RuntimeConfig,
@@ -271,6 +271,19 @@ async def run_watcher_endpoint(config_data: ConfigData):
         "total_cost_usd": result["total_cost_usd"],
         "errors": result.get("errors", []),
     }
+
+@app.get("/runs")
+async def list_runs():
+    """List all historical runs."""
+    sqlite_db_path = "./output/watcher.db"
+    try:
+        init_db_if_needed(sqlite_db_path)
+        with sqlite3.connect(sqlite_db_path) as conn:
+            runs = get_all_runs(conn)
+            return runs
+    except Exception as e:
+        logger.error(f"Failed to list runs: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/results/{run_id}")
 async def get_run_results(run_id: str):

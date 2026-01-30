@@ -2493,3 +2493,52 @@ def delete_user_intent(
         (intent_id, user_id),
     )
     return cursor.rowcount > 0
+
+def get_all_runs(conn: sqlite3.Connection) -> list[dict]:
+    """
+    Retrieve a list of all historical runs with token usage.
+
+    Returns:
+        List of run summary dicts, ordered by timestamp descending.
+    """
+    # SQLite JSON extract syntax: json_extract(column, '$.key')
+    cursor = conn.execute(
+        """
+        SELECT 
+            r.run_id, 
+            r.timestamp_utc, 
+            r.total_intents, 
+            r.total_models, 
+            r.total_cost_usd,
+            (
+                SELECT SUM(
+                    COALESCE(json_extract(usage_meta_json, '$.prompt_tokens'), 0)
+                ) 
+                FROM answers_raw 
+                WHERE run_id = r.run_id
+            ) as input_tokens,
+            (
+                SELECT SUM(
+                    COALESCE(json_extract(usage_meta_json, '$.completion_tokens'), 0)
+                ) 
+                FROM answers_raw 
+                WHERE run_id = r.run_id
+            ) as output_tokens
+        FROM runs r
+        ORDER BY r.timestamp_utc DESC
+        """
+    )
+    
+    runs = []
+    for row in cursor.fetchall():
+        runs.append({
+            "run_id": row[0],
+            "timestamp_utc": row[1],
+            "total_intents": row[2],
+            "total_models": row[3],
+            "total_cost_usd": row[4],
+            "input_tokens": row[5] or 0,
+            "output_tokens": row[6] or 0,
+        })
+    return runs
+

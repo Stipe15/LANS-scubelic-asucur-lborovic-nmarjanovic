@@ -517,6 +517,36 @@ export default function Dashboard({ theme }) {
     }
   }, [searchParams]);
 
+  // Handle runId and tab params
+  useEffect(() => {
+    const runIdParam = searchParams.get('runId');
+    const tabParam = searchParams.get('tab');
+
+    if (tabParam === 'results') {
+      setActiveTab('results');
+    }
+
+    if (runIdParam) {
+      setRunId(runIdParam);
+      // Fetch results for the run
+      fetch(`${API_BASE_URL}/results/${runIdParam}`, {
+         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+      })
+      .then(res => {
+        if (res.ok) return res.json();
+        throw new Error('Failed to fetch results');
+      })
+      .then(data => {
+         setResults(data);
+         setActiveTab('results');
+      })
+      .catch(err => {
+        console.error("Failed to load run results", err);
+        showToast("Failed to load run results", "error");
+      });
+    }
+  }, [searchParams, token]);
+
   // State
   const [activeTab, setActiveTab] = useState<'config' | 'results'>('config');
   const [selectedProvider, setSelectedProvider] = useState<Provider | 'both'>('google');
@@ -881,6 +911,16 @@ export default function Dashboard({ theme }) {
                     >
                       <Sparkles className="w-4 h-4" />
                       Setup Wizard
+                    </Link>
+                    <Link
+                      to="/history"
+                      className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+                        theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
+                      }`}
+                      onClick={() => setShowMainMenu(false)}
+                    >
+                      <Clock className="w-4 h-4" />
+                      Run History
                     </Link>
                     <Link
                       to="/faq"

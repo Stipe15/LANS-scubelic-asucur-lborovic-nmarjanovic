@@ -8,6 +8,7 @@ import Dashboard from './pages/Dashboard';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import ProfilePage from './pages/ProfilePage';
+import HistoryPage from './pages/HistoryPage';
 import SetupWizard from './pages/SetupWizard';
 import ThemeToggler from './components/ThemeToggler';
 
@@ -39,6 +40,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <Dashboard theme={theme} />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/history"
+                element={
+                  <ProtectedRoute>
+                    <HistoryPage theme={theme} />
                   </ProtectedRoute>
                 }
               />
