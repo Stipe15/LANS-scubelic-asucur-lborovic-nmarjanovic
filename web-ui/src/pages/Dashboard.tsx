@@ -507,6 +507,7 @@ export default function Dashboard({ theme }) {
   const [showCompetitorDropdown, setShowCompetitorDropdown] = useState(false);
   const [showIntentDropdown, setShowIntentDropdown] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
+  const [useWizardMode, setUseWizardMode] = useState(true);
 
   // State
   const [activeTab, setActiveTab] = useState<'config' | 'results'>('config');
@@ -1045,17 +1046,35 @@ export default function Dashboard({ theme }) {
       <main className="relative max-w-7xl mx-auto px-6 py-8">
         {activeTab === 'config' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Configuration */}
+            {/* Left Column - Configuration (Stepper) */}
             <div className="lg:col-span-2 space-y-4">
               
+              {/* View Mode Toggle */}
+              <div className="flex justify-end mb-2">
+                <button
+                  onClick={() => setUseWizardMode(!useWizardMode)}
+                  className={`text-xs font-medium flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
+                    theme === 'dark' 
+                      ? 'bg-navy-800 border-navy-700 text-navy-300 hover:text-white' 
+                      : 'bg-white border-gray-200 text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <span className={useWizardMode ? 'text-primary-400' : 'opacity-50'}>Wizard Mode</span>
+                  <div className={`relative w-8 h-4 rounded-full transition-colors ${useWizardMode ? 'bg-primary-500' : 'bg-gray-400'}`}>
+                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${useWizardMode ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                  </div>
+                  <span className={!useWizardMode ? 'text-primary-400' : 'opacity-50'}>Classic</span>
+                </button>
+              </div>
+
               {/* STEP 1: API Configuration */}
               <CollapsibleSection 
-                title="1. Connect Intelligence" 
+                title={useWizardMode ? "1. Connect Intelligence" : "API Configuration"}
                 icon={<Shield className="w-5 h-5 text-primary-400" />}
                 theme={theme}
                 isComplete={isApiStepValid()}
-                isOpen={currentStep === 1}
-                onToggle={() => setCurrentStep(1)}
+                isOpen={useWizardMode ? currentStep === 1 : undefined}
+                onToggle={useWizardMode ? () => setCurrentStep(1) : undefined}
               >
                 <div className="space-y-6">
                   {/* Provider Selection */}
@@ -1191,40 +1210,6 @@ export default function Dashboard({ theme }) {
                         placeholder="AIzaSy..."
                         className={inputClass}
                       />
-                      {savedKeys.filter(k => k.provider === 'google').length > 0 && (
-                        <div className="mt-2 relative">
-                          <button
-                            onClick={() => setShowKeyDropdown(prev => ({ ...prev, google: !prev.google }))}
-                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
-                          >
-                            <Key className="w-3 h-3" /> Use saved key <ChevronDown className="w-3 h-3" />
-                          </button>
-                          
-                          {showKeyDropdown.google && (
-                            <div className={`absolute left-0 top-full mt-1 w-full rounded-lg border shadow-lg z-20 ${
-                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
-                            }`}>
-                              {savedKeys.filter(k => k.provider === 'google').map(key => (
-                                <button
-                                  key={key.id}
-                                  onClick={() => {
-                                    loadSavedKey('google', key.key_name);
-                                    setShowKeyDropdown(prev => ({ ...prev, google: false }));
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
-                                    theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'
-                                  }`}
-                                >
-                                  {key.key_name || 'Default Key'}
-                                  <span className={`ml-2 text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
-                                    {new Date(key.created_at).toLocaleDateString()}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                     <div>
                       <label className={theme === 'dark' ? 'label' : 'label-light'}>Groq API Key</label>
@@ -1235,40 +1220,6 @@ export default function Dashboard({ theme }) {
                         placeholder="gsk_..."
                         className={inputClass}
                       />
-                      {savedKeys.filter(k => k.provider === 'groq').length > 0 && (
-                        <div className="mt-2 relative">
-                          <button
-                            onClick={() => setShowKeyDropdown(prev => ({ ...prev, groq: !prev.groq }))}
-                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
-                          >
-                            <Key className="w-3 h-3" /> Use saved key <ChevronDown className="w-3 h-3" />
-                          </button>
-                          
-                          {showKeyDropdown.groq && (
-                            <div className={`absolute left-0 top-full mt-1 w-full rounded-lg border shadow-lg z-20 ${
-                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
-                            }`}>
-                              {savedKeys.filter(k => k.provider === 'groq').map(key => (
-                                <button
-                                  key={key.id}
-                                  onClick={() => {
-                                    loadSavedKey('groq', key.key_name);
-                                    setShowKeyDropdown(prev => ({ ...prev, groq: false }));
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
-                                    theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'
-                                  }`}
-                                >
-                                  {key.key_name || 'Default Key'}
-                                  <span className={`ml-2 text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
-                                    {new Date(key.created_at).toLocaleDateString()}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
@@ -1289,30 +1240,32 @@ export default function Dashboard({ theme }) {
                   </div>
                 )}
 
-                <div className="pt-4 border-t border-gray-200/10 flex justify-end">
-                  <button 
-                    onClick={() => {
-                        if(isApiStepValid()) setCurrentStep(2);
-                        else showToast("Please enter an API Key", "error");
-                    }} 
-                    className="btn-primary"
-                    disabled={!isApiStepValid()}
-                  >
-                    Next: Define Identity <ArrowRight className="w-4 h-4 ml-2" />
-                  </button>
-                </div>
+                {useWizardMode && (
+                  <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                    <button 
+                      onClick={() => {
+                          if(isApiStepValid()) setCurrentStep(2);
+                          else showToast("Please enter an API Key", "error");
+                      }} 
+                      className="btn-primary"
+                      disabled={!isApiStepValid()}
+                    >
+                      Next: Define Identity <ArrowRight className="w-4 h-4 ml-2" />
+                    </button>
+                  </div>
+                )}
                 </div>
               </CollapsibleSection>
 
               {/* STEP 2: Brands */}
               <CollapsibleSection 
-                title="2. Define Your Identity" 
+                title={useWizardMode ? "2. Define Your Identity" : "Brands to Track"}
                 icon={<Target className="w-5 h-5 text-accent-400" />}
                 theme={theme}
                 isComplete={isBrandStepValid()}
-                isOpen={currentStep === 2}
-                onToggle={() => { if(currentStep > 2) setCurrentStep(2); }}
-                className={currentStep < 2 ? 'opacity-50 pointer-events-none' : ''}
+                isOpen={useWizardMode ? currentStep === 2 : undefined}
+                onToggle={useWizardMode ? () => { if(currentStep > 2) setCurrentStep(2); } : undefined}
+                className={useWizardMode && currentStep < 2 ? 'opacity-50 pointer-events-none' : ''}
               >
                 <div className="space-y-6">
                   <div>
@@ -1372,30 +1325,32 @@ export default function Dashboard({ theme }) {
                     </p>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-200/10 flex justify-end">
-                    <button 
-                      onClick={() => {
-                          if(isBrandStepValid()) setCurrentStep(3);
-                          else showToast("Please define at least one brand", "error");
-                      }} 
-                      className="btn-primary"
-                      disabled={!isBrandStepValid()}
-                    >
-                      Next: The Competition <ArrowRight className="w-4 h-4 ml-2" />
-                    </button>
-                  </div>
+                  {useWizardMode && (
+                    <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                      <button 
+                        onClick={() => {
+                            if(isBrandStepValid()) setCurrentStep(3);
+                            else showToast("Please define at least one brand", "error");
+                        }} 
+                        className="btn-primary"
+                        disabled={!isBrandStepValid()}
+                      >
+                        Next: The Competition <ArrowRight className="w-4 h-4 ml-2" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </CollapsibleSection>
 
               {/* STEP 3: Competitors */}
               <CollapsibleSection 
-                title="3. The Competition" 
+                title={useWizardMode ? "3. The Competition" : "Competitors"}
                 icon={<Users className="w-5 h-5 text-rose-400" />}
                 theme={theme}
                 isComplete={competitors.filter(c => c.trim()).length > 0}
-                isOpen={currentStep === 3}
-                onToggle={() => { if(currentStep > 3) setCurrentStep(3); }}
-                className={currentStep < 3 ? 'opacity-50 pointer-events-none' : ''}
+                isOpen={useWizardMode ? currentStep === 3 : undefined}
+                onToggle={useWizardMode ? () => { if(currentStep > 3) setCurrentStep(3); } : undefined}
+                className={useWizardMode && currentStep < 3 ? 'opacity-50 pointer-events-none' : ''}
               >
                 <div className="space-y-6">
                   <div>
@@ -1452,26 +1407,28 @@ export default function Dashboard({ theme }) {
                     />
                   </div>
 
-                  <div className="pt-4 border-t border-gray-200/10 flex justify-end">
-                    <button 
-                      onClick={() => setCurrentStep(4)} 
-                      className="btn-primary"
-                    >
-                      Next: Define Questions <ArrowRight className="w-4 h-4 ml-2" />
-                    </button>
-                  </div>
+                  {useWizardMode && (
+                    <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                      <button 
+                        onClick={() => setCurrentStep(4)} 
+                        className="btn-primary"
+                      >
+                        Next: Define Questions <ArrowRight className="w-4 h-4 ml-2" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </CollapsibleSection>
 
               {/* STEP 4: Intents */}
               <CollapsibleSection 
-                title="4. Questions to Ask" 
+                title={useWizardMode ? "4. Questions to Ask" : "Search Queries (Intents)"}
                 icon={<MessageSquare className="w-5 h-5 text-green-400" />}
                 theme={theme}
                 isComplete={isIntentStepValid()}
-                isOpen={currentStep === 4}
-                onToggle={() => { if(currentStep > 4) setCurrentStep(4); }}
-                className={currentStep < 4 ? 'opacity-50 pointer-events-none' : ''}
+                isOpen={useWizardMode ? currentStep === 4 : undefined}
+                onToggle={useWizardMode ? () => { if(currentStep > 4) setCurrentStep(4); } : undefined}
+                className={useWizardMode && currentStep < 4 ? 'opacity-50 pointer-events-none' : ''}
               >
                 <div className="space-y-6">
                   {/* Suggestion Rail */}
@@ -1552,23 +1509,25 @@ export default function Dashboard({ theme }) {
                     </button>
                   </div>
 
-                  <div className="pt-4 border-t border-gray-200/10 flex justify-end">
-                    <button 
-                      onClick={() => {
-                          if(isIntentStepValid()) setCurrentStep(5);
-                          else showToast("Please add at least one question", "error");
-                      }} 
-                      className="btn-primary"
-                      disabled={!isIntentStepValid()}
-                    >
-                      Next: Review & Launch <ArrowRight className="w-4 h-4 ml-2" />
-                    </button>
-                  </div>
+                  {useWizardMode && (
+                    <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                      <button 
+                        onClick={() => {
+                            if(isIntentStepValid()) setCurrentStep(5);
+                            else showToast("Please add at least one question", "error");
+                        }} 
+                        className="btn-primary"
+                        disabled={!isIntentStepValid()}
+                      >
+                        Next: Review & Launch <ArrowRight className="w-4 h-4 ml-2" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </CollapsibleSection>
 
-              {/* STEP 5: Review & Launch */}
-              {currentStep === 5 && (
+              {/* STEP 5: Review & Launch (or Classic Bottom Action) */}
+              {(useWizardMode ? currentStep === 5 : true) && (
                 <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-navy-800/50 border-primary-500/30 shadow-lg shadow-primary-500/5' : 'bg-white border-primary-200 shadow-xl'}`}>
                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <CheckCircle2 className="w-6 h-6 text-emerald-500" />
