@@ -15,7 +15,10 @@ import {
   Mail,
   Smartphone,
   Globe,
-  Monitor
+  Monitor,
+  AlignJustify,
+  Layout,
+  Rows
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../context/ToastContext';
@@ -181,6 +184,42 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
     transition duration-200 ease-in-out ${isActive ? 'translate-x-5' : 'translate-x-0'}
   `;
 
+  // Dynamic styles based on density
+  const getDensityStyles = () => {
+    switch (appearance.density) {
+      case 'compact':
+        return {
+          containerSpace: 'space-y-4',
+          cardPadding: 'p-4',
+          cardSpace: 'space-y-4',
+          itemPadding: 'p-3',
+          headerMb: 'mb-4',
+          fontSize: 'text-sm'
+        };
+      case 'spacious':
+        return {
+          containerSpace: 'space-y-8',
+          cardPadding: 'p-8',
+          cardSpace: 'space-y-8',
+          itemPadding: 'p-6',
+          headerMb: 'mb-8',
+          fontSize: 'text-base'
+        };
+      case 'comfortable':
+      default:
+        return {
+          containerSpace: 'space-y-6',
+          cardPadding: 'p-6',
+          cardSpace: 'space-y-6',
+          itemPadding: 'p-4',
+          headerMb: 'mb-6',
+          fontSize: 'text-base'
+        };
+    }
+  };
+
+  const styles = getDensityStyles();
+
   return (
     <div className={`min-h-screen ${theme === 'dark' ? 'bg-navy-950 text-white' : 'light-mode-bg text-gray-900'} px-4 py-8`}>
       <div className="max-w-4xl mx-auto">
@@ -190,7 +229,7 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
         )}
 
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className={`flex items-center justify-between ${styles.headerMb}`}>
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate('/app')}
@@ -210,16 +249,16 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className={styles.containerSpace}>
           
           {/* Appearance Section */}
-          <div className={`${glassCardClass} p-6`}>
+          <div className={`${glassCardClass} ${styles.cardPadding}`}>
             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
               <Monitor className="w-5 h-5 text-primary-400" />
               Appearance
             </h2>
             
-            <div className="space-y-6">
+            <div className={styles.cardSpace}>
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="font-medium">Theme Mode</h3>
@@ -251,40 +290,56 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
 
                <div className={`h-px ${theme === 'dark' ? 'bg-navy-800' : 'bg-gray-200'}`} />
 
-               <div className="flex items-center justify-between">
-                 <div>
+               <div>
+                 <div className="mb-4">
                     <h3 className="font-medium">Interface Density</h3>
                     <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
                       Adjust the spacing of UI elements
                     </p>
                  </div>
-                 <div className="flex gap-2">
-                    {['compact', 'comfortable'].map((density) => (
+                 <div className="grid grid-cols-3 gap-4">
+                    {[
+                      { id: 'compact', label: 'Compact', desc: 'High density', space: 'space-y-1', height: 'h-1.5' },
+                      { id: 'comfortable', label: 'Comfortable', desc: 'Standard', space: 'space-y-3', height: 'h-2' },
+                      { id: 'spacious', label: 'Spacious', desc: 'Relaxed', space: 'space-y-5', height: 'h-2.5' }
+                    ].map((opt) => {
+                       const isSelected = appearance.density === opt.id;
+                       
+                       return (
                        <button
-                          key={density}
-                          onClick={() => setAppearance({ ...appearance, density })}
-                          className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                             appearance.density === density
-                               ? (theme === 'dark' ? 'bg-primary-500/20 border-primary-500 text-primary-300' : 'bg-primary-50 border-primary-500 text-primary-700')
-                               : (theme === 'dark' ? 'bg-navy-800 border-navy-700 text-navy-400' : 'bg-white border-gray-200 text-gray-600')
+                          key={opt.id}
+                          onClick={() => setAppearance({ ...appearance, density: opt.id })}
+                          className={`flex flex-col items-center text-center p-4 rounded-xl border-2 transition-all h-full ${
+                             isSelected
+                               ? (theme === 'dark' ? 'bg-primary-500/10 border-primary-500 shadow-lg shadow-primary-500/10' : 'bg-primary-50 border-primary-500 shadow-md')
+                               : (theme === 'dark' ? 'bg-navy-800/50 border-navy-800 hover:border-navy-600' : 'bg-white border-gray-200 hover:border-gray-300')
                           }`}
                        >
-                          {density.charAt(0).toUpperCase() + density.slice(1)}
+                          {/* Visual Preview */}
+                          <div className={`w-16 ${opt.space} mb-4 p-2 rounded border ${theme === 'dark' ? 'border-navy-700 bg-navy-900/50' : 'border-gray-100 bg-gray-50'}`}>
+                              <div className={`${opt.height} w-full rounded-full ${isSelected ? 'bg-primary-500' : (theme === 'dark' ? 'bg-navy-600' : 'bg-gray-300')}`} />
+                              <div className={`${opt.height} w-3/4 rounded-full ${isSelected ? 'bg-primary-400' : (theme === 'dark' ? 'bg-navy-700' : 'bg-gray-200')}`} />
+                              <div className={`${opt.height} w-5/6 rounded-full ${isSelected ? 'bg-primary-500' : (theme === 'dark' ? 'bg-navy-600' : 'bg-gray-300')}`} />
+                              {opt.id === 'compact' && <div className={`${opt.height} w-full rounded-full ${isSelected ? 'bg-primary-400' : (theme === 'dark' ? 'bg-navy-700' : 'bg-gray-200')}`} />}
+                          </div>
+
+                          <span className={`text-sm font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{opt.label}</span>
+                          <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-navy-500' : 'text-gray-500'}`}>{opt.desc}</span>
                        </button>
-                    ))}
+                    )})}
                  </div>
                </div>
             </div>
           </div>
 
           {/* Notifications Section */}
-          <div className={`${glassCardClass} p-6`}>
+          <div className={`${glassCardClass} ${styles.cardPadding}`}>
             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
               <Bell className="w-5 h-5 text-accent-400" />
               Notifications
             </h2>
 
-            <div className="space-y-6">
+            <div className={styles.cardSpace}>
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-3">
                     <div className={`p-2 rounded-lg ${theme === 'dark' ? 'bg-navy-800' : 'bg-gray-100'}`}>
@@ -328,7 +383,7 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
           </div>
 
           {/* Data Management */}
-          <div className={`${glassCardClass} p-6`}>
+          <div className={`${glassCardClass} ${styles.cardPadding}`}>
              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                <Database className="w-5 h-5 text-emerald-400" />
                Data Management
@@ -338,7 +393,7 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
                 <button
                    onClick={handleExportData}
                    disabled={isExporting}
-                   className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                   className={`w-full flex items-center justify-between ${styles.itemPadding} rounded-xl border transition-all ${
                       theme === 'dark' 
                         ? 'bg-navy-800/50 border-navy-700 hover:bg-navy-800 hover:border-navy-600' 
                         : 'bg-white border-gray-200 hover:bg-gray-50 hover:border-gray-300'
@@ -363,7 +418,7 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
                 <button
                    onClick={handleClearHistory}
                    disabled={isDeleting}
-                   className={`w-full flex items-center justify-between p-4 rounded-xl border transition-all ${
+                   className={`w-full flex items-center justify-between ${styles.itemPadding} rounded-xl border transition-all ${
                       theme === 'dark' 
                         ? 'bg-navy-800/50 border-navy-700 hover:bg-rose-900/10 hover:border-rose-900/30' 
                         : 'bg-white border-gray-200 hover:bg-rose-50 hover:border-rose-200'
@@ -386,14 +441,14 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
           </div>
 
           {/* Account */}
-          <div className={`${glassCardClass} p-6`}>
+          <div className={`${glassCardClass} ${styles.cardPadding}`}>
              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
                 <Shield className="w-5 h-5 text-blue-400" />
                 Account
              </h2>
 
              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 rounded-xl bg-primary-500/5 border border-primary-500/10">
+                <div className={`flex items-center justify-between ${styles.itemPadding} rounded-xl bg-primary-500/5 border border-primary-500/10`}>
                    <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary-500/10 flex items-center justify-center text-primary-500 font-bold">
                          {user?.username?.charAt(0).toUpperCase()}
