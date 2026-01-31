@@ -1577,8 +1577,8 @@ export default function Dashboard({ theme }) {
                 </div>
               </CollapsibleSection>
 
-              {/* STEP 5: Review & Launch (or Classic Bottom Action) */}
-              {(useWizardMode ? currentStep === 5 : true) && (
+              {/* STEP 5: Review & Launch (Wizard Only) */}
+              {useWizardMode && currentStep === 5 && (
                 <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-navy-800/50 border-primary-500/30 shadow-lg shadow-primary-500/5' : 'bg-white border-primary-200 shadow-xl'}`}>
                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                     <CheckCircle2 className="w-6 h-6 text-emerald-500" />
