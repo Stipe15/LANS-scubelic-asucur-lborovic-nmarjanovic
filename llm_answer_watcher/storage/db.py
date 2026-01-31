@@ -2157,6 +2157,40 @@ def get_user_api_key_by_provider(
     }
 
 
+def get_user_api_key_by_id(conn: sqlite3.Connection, key_id: int, user_id: int) -> dict | None:
+    """
+    Get a specific API key by ID and user (includes encrypted key).
+
+    Args:
+        conn: Active SQLite database connection
+        key_id: API key ID
+        user_id: User ID (for ownership verification)
+
+    Returns:
+        API key dict including encrypted_key, or None if not found
+    """
+    cursor = conn.execute(
+        """
+        SELECT id, provider, encrypted_key, key_name, created_at, updated_at, last_used_at
+        FROM user_api_keys
+        WHERE id = ? AND user_id = ?
+        """,
+        (key_id, user_id),
+    )
+    row = cursor.fetchone()
+    if row is None:
+        return None
+    return {
+        "id": row[0],
+        "provider": row[1],
+        "encrypted_key": row[2],
+        "key_name": row[3],
+        "created_at": row[4],
+        "updated_at": row[5],
+        "last_used_at": row[6],
+    }
+
+
 def update_user_api_key(
     conn: sqlite3.Connection,
     key_id: int,
