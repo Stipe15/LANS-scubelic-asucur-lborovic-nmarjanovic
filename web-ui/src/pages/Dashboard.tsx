@@ -1047,7 +1047,7 @@ export default function Dashboard({ theme }) {
         {activeTab === 'config' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column - Configuration (Stepper) */}
-            <div className="lg:col-span-2 space-y-4">
+            <div className={`${useWizardMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-4 transition-all`}>
               
               {/* View Mode Toggle */}
               <div className="flex justify-end mb-2">
@@ -1585,7 +1585,7 @@ export default function Dashboard({ theme }) {
                     Ready to Launch
                   </h2>
                   
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                     <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
                       <p className="text-xs opacity-70 mb-1">Provider</p>
                       <p className="font-medium capitalize">{selectedProvider}</p>
@@ -1601,6 +1601,14 @@ export default function Dashboard({ theme }) {
                     <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
                       <p className="text-xs opacity-70 mb-1">Questions</p>
                       <p className="font-medium">{intents.filter(i => i.prompt.trim()).length} Queries</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Est. Cost</p>
+                      <p className="font-medium">~$0.001</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Est. Time</p>
+                      <p className="font-medium">~5 seconds</p>
                     </div>
                   </div>
 
@@ -1626,7 +1634,7 @@ export default function Dashboard({ theme }) {
             </div>
 
             {/* Right Column - Preview & Actions */}
-            <div className="space-y-6">
+            <div className={`space-y-6 ${useWizardMode ? 'hidden' : ''}`}>
               {/* Run Button */}
               <div className={`${glassCardClass} p-6 glow-primary`}>
                 <button
