@@ -458,6 +458,21 @@ export default function Dashboard({ theme }) {
   const [savedKeys, setSavedKeys] = useState<any[]>([]);
   const [savedBrands, setSavedBrands] = useState<UserBrand[]>([]);
   const [savedIntents, setSavedIntents] = useState<UserIntent[]>([]);
+  const [userSettings, setUserSettings] = useState<any>(null);
+
+  // Load user settings to check notification preferences
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE_URL}/user/settings`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      if (data) setUserSettings(data);
+    })
+    .catch(err => console.error("Failed to load settings", err));
+  }, [token]);
+
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showCompetitorDropdown, setShowCompetitorDropdown] = useState(false);
   const [showIntentDropdown, setShowIntentDropdown] = useState(false);
@@ -759,6 +774,25 @@ export default function Dashboard({ theme }) {
       const resultsData = await resultsResponse.json();
       setResults(resultsData);
       showToast('Search completed successfully', 'success');
+
+      // Check settings fresh to ensure we have latest preferences
+      try {
+        const settingsRes = await fetch(`${API_BASE_URL}/user/settings`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (settingsRes.ok) {
+           const settings = await settingsRes.json();
+           if (settings?.notifications?.browser && 'Notification' in window && Notification.permission === 'granted') {
+             showToast('Attempting to send browser notification...', 'info'); // Debug toast
+             new Notification('Scan Completed', {
+               body: 'Your brand monitoring scan has finished successfully.',
+               icon: '/vite.svg'
+             });
+           }
+        }
+      } catch (e) {
+        console.error("Failed to check notification settings", e);
+      }
       
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';

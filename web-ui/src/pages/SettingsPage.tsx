@@ -114,6 +114,81 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
   }, [notifications, appearance, theme, token, isLoading]);
 
 
+  const saveNotificationsImmediate = async (newNotifications: any) => {
+      try {
+          await fetch(`${API_BASE_URL}/user/settings`, {
+              method: 'PUT',
+              headers: { 
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}` 
+              },
+              body: JSON.stringify({ 
+                  settings: { 
+                      notifications: newNotifications, 
+                      appearance: { ...appearance, theme } 
+                  } 
+              })
+          });
+      } catch (err) {
+          console.error("Failed to save settings", err);
+      }
+  };
+
+  const handleBrowserNotificationToggle = async () => {
+    let newState = notifications.browser;
+
+    // If turning off
+    if (notifications.browser) {
+      newState = false;
+      const newNotifs = { ...notifications, browser: newState };
+      setNotifications(newNotifs);
+      saveNotificationsImmediate(newNotifs);
+      return;
+    }
+
+    // If turning on, check permissions
+    if (!('Notification' in window)) {
+      showToast('This browser does not support desktop notifications', 'error');
+      return;
+    }
+
+    const grantPermission = () => {
+        const newNotifs = { ...notifications, browser: true };
+        setNotifications(newNotifs);
+        saveNotificationsImmediate(newNotifs);
+        new Notification('Notifications Enabled', {
+          body: 'You will now receive alerts when your scans complete.',
+          icon: '/vite.svg'
+        });
+    };
+
+    if (Notification.permission === 'granted') {
+      grantPermission();
+    } else if (Notification.permission !== 'denied') {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        grantPermission();
+      } else {
+        showToast('Notification permission denied', 'error');
+      }
+    } else {
+      showToast('Notifications are blocked. Please enable them in your browser settings.', 'error');
+    }
+  };
+
+  const handleEmailNotificationToggle = () => {
+    const newState = !notifications.email;
+    const newNotifs = { ...notifications, email: newState };
+    setNotifications(newNotifs);
+    saveNotificationsImmediate(newNotifs);
+    
+    if (newState) {
+      showToast(`Subscribed to weekly updates at ${user?.email}`, 'success');
+    } else {
+      showToast('Unsubscribed from email updates', 'info');
+    }
+  };
+
   const handleLogout = async () => {
     navigate('/', { replace: true });
     await logout();
@@ -353,7 +428,7 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
                     </div>
                  </div>
                  <button 
-                    onClick={() => setNotifications({ ...notifications, email: !notifications.email })}
+                    onClick={handleEmailNotificationToggle}
                     className={toggleClass(notifications.email)}
                  >
                     <span className={toggleSpanClass(notifications.email)} />
@@ -373,7 +448,7 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
                     </div>
                  </div>
                  <button 
-                    onClick={() => setNotifications({ ...notifications, browser: !notifications.browser })}
+                    onClick={handleBrowserNotificationToggle}
                     className={toggleClass(notifications.browser)}
                  >
                     <span className={toggleSpanClass(notifications.browser)} />
