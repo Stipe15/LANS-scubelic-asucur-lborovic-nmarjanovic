@@ -42,7 +42,7 @@ export function CollapsibleSection({
     : 'glass-card-light';
 
   return (
-    <div className={`${glassCardClass} overflow-hidden transition-all duration-300 ${className} ${isOpen ? 'ring-1 ring-primary-500/30' : ''}`}>
+    <div className={`${glassCardClass} overflow-hidden transition-all duration-300 ${className}`}>
       <button 
         onClick={handleToggle}
         className={`w-full flex items-center justify-between p-6 cursor-pointer hover:bg-white/5 transition-colors ${isComplete && !isOpen ? 'opacity-70' : 'opacity-100'}`}

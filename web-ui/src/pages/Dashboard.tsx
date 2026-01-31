@@ -30,6 +30,7 @@ import {
   ArrowRight,
   User,
   LogOut,
+  Layout,
   Key,
   Building2,
   Info,
@@ -618,6 +619,11 @@ export default function Dashboard({ theme }) {
 
   const yamlOutput = yaml.dump(generateConfig(), { lineWidth: -1 });
 
+  // Dynamic Styles
+  const sectionBorderClass = useWizardMode 
+    ? 'border border-rose-500/50 ring-1 ring-rose-500/20 shadow-lg shadow-rose-500/10' 
+    : 'border border-emerald-500/50 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/10';
+
   // Handlers
   const addIntent = () => {
     setIntents([...intents, { id: '', prompt: '' }]);
@@ -1050,20 +1056,33 @@ export default function Dashboard({ theme }) {
             <div className={`${useWizardMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-4 transition-all`}>
               
               {/* View Mode Toggle */}
-              <div className="flex justify-end mb-2">
+              <div className="flex justify-end mb-4">
                 <button
                   onClick={() => setUseWizardMode(!useWizardMode)}
-                  className={`text-xs font-medium flex items-center gap-2 px-3 py-1.5 rounded-full border transition-all ${
-                    theme === 'dark' 
-                      ? 'bg-navy-800 border-navy-700 text-navy-300 hover:text-white' 
-                      : 'bg-white border-gray-200 text-gray-600 hover:text-gray-900'
+                  className={`relative flex items-center p-1 rounded-full border transition-all duration-300 ${
+                    theme === 'dark' ? 'bg-navy-900 border-navy-700' : 'bg-white border-gray-200'
                   }`}
                 >
-                  <span className={useWizardMode ? 'text-primary-400' : 'opacity-50'}>Wizard Mode</span>
-                  <div className={`relative w-8 h-4 rounded-full transition-colors ${useWizardMode ? 'bg-primary-500' : 'bg-gray-400'}`}>
-                    <div className={`absolute top-0.5 w-3 h-3 bg-white rounded-full transition-transform ${useWizardMode ? 'translate-x-4.5' : 'translate-x-0.5'}`} />
+                  {/* Sliding Background */}
+                  <div
+                    className={`absolute inset-y-1 w-[50%] rounded-full shadow-md transition-all duration-300 ease-out ${
+                      useWizardMode 
+                        ? 'left-1 bg-rose-500 shadow-rose-500/20' 
+                        : 'left-[48%] bg-emerald-500 shadow-emerald-500/20'
+                    }`}
+                  />
+
+                  {/* Wizard Option */}
+                  <div className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-300 ${useWizardMode ? 'text-white' : (theme === 'dark' ? 'text-navy-400' : 'text-gray-500')}`}>
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-sm font-medium">Wizard</span>
                   </div>
-                  <span className={!useWizardMode ? 'text-primary-400' : 'opacity-50'}>Classic</span>
+
+                  {/* Classic Option */}
+                  <div className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-300 ${!useWizardMode ? 'text-white' : (theme === 'dark' ? 'text-navy-400' : 'text-gray-500')}`}>
+                    <Layout className="w-4 h-4" />
+                    <span className="text-sm font-medium">Classic</span>
+                  </div>
                 </button>
               </div>
 
@@ -1075,6 +1094,7 @@ export default function Dashboard({ theme }) {
                 isComplete={isApiStepValid()}
                 isOpen={useWizardMode ? currentStep === 1 : undefined}
                 onToggle={useWizardMode ? () => setCurrentStep(1) : undefined}
+                className={sectionBorderClass}
               >
                 <div className="space-y-6">
                   {/* Provider Selection */}
@@ -1268,7 +1288,7 @@ export default function Dashboard({ theme }) {
                     isComplete={isBrandStepValid()}
                     isOpen={currentStep === 2}
                     onToggle={() => { if(currentStep > 2) setCurrentStep(2); }}
-                    className={currentStep < 2 ? 'opacity-50 pointer-events-none' : ''}
+                    className={`${currentStep < 2 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
                   >
                     <div className="space-y-6">
                       <div>
@@ -1327,7 +1347,7 @@ export default function Dashboard({ theme }) {
                     isComplete={competitors.filter(c => c.trim()).length > 0}
                     isOpen={currentStep === 3}
                     onToggle={() => { if(currentStep > 3) setCurrentStep(3); }}
-                    className={currentStep < 3 ? 'opacity-50 pointer-events-none' : ''}
+                    className={`${currentStep < 3 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
                   >
                     <div className="space-y-6">
                       <div>
@@ -1384,6 +1404,7 @@ export default function Dashboard({ theme }) {
                   icon={<Target className="w-5 h-5 text-accent-400" />}
                   theme={theme}
                   isComplete={myBrands.filter(b => b.trim()).length > 0}
+                  className={sectionBorderClass}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {/* My Brands */}
@@ -1479,7 +1500,7 @@ export default function Dashboard({ theme }) {
                 isComplete={isIntentStepValid()}
                 isOpen={useWizardMode ? currentStep === 4 : undefined}
                 onToggle={useWizardMode ? () => { if(currentStep > 4) setCurrentStep(4); } : undefined}
-                className={useWizardMode && currentStep < 4 ? 'opacity-50 pointer-events-none' : ''}
+                className={`${useWizardMode && currentStep < 4 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
               >
                 <div className="space-y-6">
                   {/* Suggestion Rail */}
