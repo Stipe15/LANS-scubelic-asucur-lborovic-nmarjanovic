@@ -45,6 +45,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { StatsBar } from '../components/ui/StatsBar';
 import { TagInput } from '../components/ui/TagInput';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { PromptOptimizer } from '../components/PromptOptimizer';
 
 const INTENT_TEMPLATES = [
@@ -447,6 +448,7 @@ export default function Dashboard({ theme }) {
   const { showToast } = useToast();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
     navigate('/', { replace: true });
@@ -950,7 +952,7 @@ export default function Dashboard({ theme }) {
                 )}
               </div>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => setShowLogoutConfirm(true)}
                 className={`${btnGhostClass} p-2`}
                 title="Back to home"
               >
@@ -1962,6 +1964,18 @@ export default function Dashboard({ theme }) {
           </div>
         </div>
       </footer>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+        title="Leave Dashboard?"
+        message="Are you sure you want to leave? You will be logged out of your current session."
+        confirmLabel="Logout & Leave"
+        theme={theme}
+        variant="warning"
+      />
     </div>
   );
 }
