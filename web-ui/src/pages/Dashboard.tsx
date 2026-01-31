@@ -1470,6 +1470,7 @@ export default function Dashboard({ theme }) {
                   icon={<Target className="w-5 h-5 text-accent-400" />}
                   theme={theme}
                   isComplete={myBrands.filter(b => b.trim()).length > 0}
+                  defaultOpen={false}
                   className={sectionBorderClass}
                 >
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1567,7 +1568,7 @@ export default function Dashboard({ theme }) {
                 icon={<MessageSquare className="w-5 h-5 text-green-400" />}
                 theme={theme}
                 isComplete={isIntentStepValid()}
-                defaultOpen={useWizardMode ? currentStep === 4 : true}
+                defaultOpen={useWizardMode ? currentStep === 4 : false}
                 isOpen={undefined}
                 onToggle={undefined}
                 className={`${useWizardMode && currentStep < 4 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}

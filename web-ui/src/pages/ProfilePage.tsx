@@ -54,6 +54,15 @@ const AVATAR_COLORS = [
   'bg-rose-500',
 ];
 
+const AVATAR_TEXT_COLORS: Record<string, string> = {
+  'bg-primary-500': 'text-primary-500',
+  'bg-blue-500': 'text-blue-500',
+  'bg-green-500': 'text-green-500',
+  'bg-amber-500': 'text-amber-500',
+  'bg-purple-500': 'text-purple-500',
+  'bg-rose-500': 'text-rose-500',
+};
+
 export default function ProfilePage({ theme }: ProfilePageProps) {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
@@ -424,7 +433,7 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
         {/* Profile Card */}
         <div className={`${glassCardClass} p-8 rounded-2xl mb-8 relative overflow-hidden group`}>
            <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
-              <User className={`w-48 h-48 ${avatarColor.replace('bg-', 'text-')}`} />
+              <User className={`w-48 h-48 ${AVATAR_TEXT_COLORS[avatarColor] || 'text-primary-500'}`} />
            </div>
            
            <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
