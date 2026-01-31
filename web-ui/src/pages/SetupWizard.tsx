@@ -1035,7 +1035,7 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="btn-primary px-8 py-3 text-base shadow-lg shadow-primary-500/20"
+                className="btn-primary px-8 py-3 text-base shadow-lg shadow-primary-500/20 flex items-center justify-center whitespace-nowrap"
               >
                 {isSubmitting ? (
                   <>
@@ -1052,7 +1052,7 @@ export default function SetupWizard({ theme }: SetupWizardProps) {
             ) : (
               <button
                 onClick={goNext}
-                className="btn-primary px-8 py-3 text-base shadow-lg shadow-primary-500/20"
+                className="btn-primary px-8 py-3 text-base shadow-lg shadow-primary-500/20 flex items-center justify-center whitespace-nowrap"
               >
                 {currentStep === 0 ? "Start Setup" : 'Continue'}
                 <ChevronRight className="w-5 h-5 ml-2" />

@@ -1030,7 +1030,7 @@ export default function Dashboard({ theme }) {
                       }`}
                       onClick={() => setShowProfileMenu(false)}
                     >
-                      My Keys
+                      My Profile
                     </Link>
 
                     <button
@@ -1332,7 +1332,7 @@ export default function Dashboard({ theme }) {
                         <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>Tip: Include aliases like "Nike.com" or "Nike Shoes"</p>
                       </div>
                       <div className="pt-4 border-t border-gray-200/10 flex justify-end">
-                        <button onClick={() => { if(isBrandStepValid()) setCurrentStep(3); else showToast("Please define at least one brand", "error"); }} className="btn-primary" disabled={!isBrandStepValid()}>
+                        <button onClick={() => { if(isBrandStepValid()) setCurrentStep(3); else showToast("Please define at least one brand", "error"); }} className="btn-primary flex items-center justify-center whitespace-nowrap" disabled={!isBrandStepValid()}>
                           Next: The Competition <ArrowRight className="w-4 h-4 ml-2" />
                         </button>
                       </div>
@@ -1390,7 +1390,7 @@ export default function Dashboard({ theme }) {
                         <TagInput tags={competitors.filter(c => c.trim())} onChange={setCompetitors} placeholder="Type competitor & press Enter (e.g. Adidas)" theme={theme} />
                       </div>
                       <div className="pt-4 border-t border-gray-200/10 flex justify-end">
-                        <button onClick={() => setCurrentStep(4)} className="btn-primary">
+                        <button onClick={() => setCurrentStep(4)} className="btn-primary flex items-center justify-center whitespace-nowrap">
                           Next: Define Questions <ArrowRight className="w-4 h-4 ml-2" />
                         </button>
                       </div>
@@ -1588,7 +1588,7 @@ export default function Dashboard({ theme }) {
                             if(isIntentStepValid()) setCurrentStep(5);
                             else showToast("Please add at least one question", "error");
                         }} 
-                        className="btn-primary"
+                        className="btn-primary flex items-center justify-center whitespace-nowrap"
                         disabled={!isIntentStepValid()}
                       >
                         Next: Review & Launch <ArrowRight className="w-4 h-4 ml-2" />
