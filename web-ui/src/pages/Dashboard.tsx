@@ -510,6 +510,14 @@ export default function Dashboard({ theme }) {
   const [showExportMenu, setShowExportMenu] = useState(false);
   const [useWizardMode, setUseWizardMode] = useState(true);
 
+  // Load view preference on mount
+  useEffect(() => {
+    const savedView = localStorage.getItem('default_view_mode');
+    if (savedView === 'classic') {
+      setUseWizardMode(false);
+    }
+  }, []);
+
   // State
   const [activeTab, setActiveTab] = useState<'config' | 'results'>('config');
   const [selectedProvider, setSelectedProvider] = useState<Provider | 'both'>('google');
@@ -691,19 +699,17 @@ export default function Dashboard({ theme }) {
     URL.revokeObjectURL(url);
   };
 
-  const loadSavedKey = async (provider: string, keyName: string) => {
+  const loadSavedKey = async (provider: string, keyId: string, keyName: string) => {
     try {
-      // Find key ID first
-      const keyObj = savedKeys.find(k => k.provider === provider && k.key_name === keyName);
-      if (keyObj) {
-        const res = await fetch(`${API_BASE_URL}/auth/api-keys/${keyObj.id}`, {
-           headers: { 'Authorization': `Bearer ${token}` }
-        });
-        const data = await res.json();
-        if (data.api_key) {
-          setApiKeys(prev => ({ ...prev, [provider]: data.api_key }));
-          showToast(`Loaded ${keyName || 'default'} key for ${provider}`, 'success');
-        }
+      const res = await fetch(`${API_BASE_URL}/auth/api-keys/${keyId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.api_key) {
+        setApiKeys(prev => ({ ...prev, [provider]: data.api_key }));
+        showToast(`Loaded ${keyName || 'default'} key for ${provider}`, 'success');
+      } else {
+         throw new Error("API key not returned");
       }
     } catch (err) {
       console.error('Failed to load API key', err);
@@ -1088,12 +1094,14 @@ export default function Dashboard({ theme }) {
 
               {/* STEP 1: API Configuration */}
               <CollapsibleSection 
+                key={useWizardMode ? `step1_wiz_${currentStep === 1}` : 'step1_classic'}
                 title={useWizardMode ? "1. Connect Intelligence" : "API Configuration"}
                 icon={<Shield className="w-5 h-5 text-primary-400" />}
                 theme={theme}
                 isComplete={isApiStepValid()}
-                isOpen={useWizardMode ? currentStep === 1 : undefined}
-                onToggle={useWizardMode ? () => setCurrentStep(1) : undefined}
+                defaultOpen={useWizardMode ? currentStep === 1 : true}
+                isOpen={undefined}
+                onToggle={undefined}
                 className={sectionBorderClass}
               >
                 <div className="space-y-6">
@@ -1178,7 +1186,7 @@ export default function Dashboard({ theme }) {
                               <button
                                 key={key.id}
                                 onClick={() => {
-                                  loadSavedKey(selectedProvider, key.key_name);
+                                  loadSavedKey(selectedProvider, key.id, key.key_name);
                                   setShowKeyDropdown(prev => ({ ...prev, [selectedProvider]: false }));
                                 }}
                                 className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
@@ -1230,6 +1238,32 @@ export default function Dashboard({ theme }) {
                         placeholder="AIzaSy..."
                         className={inputClass}
                       />
+                      {savedKeys.filter(k => k.provider === 'google').length > 0 && (
+                        <div className="mt-2 relative">
+                          <button
+                            onClick={() => setShowKeyDropdown(prev => ({ ...prev, google: !prev.google }))}
+                            className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                          >
+                            <Key className="w-3 h-3" /> Use saved key <ChevronDown className="w-3 h-3" />
+                          </button>
+                          {showKeyDropdown['google'] && (
+                            <div className={`absolute left-0 top-full mt-2 w-full rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                              {savedKeys.filter(k => k.provider === 'google').map(key => (
+                                <button
+                                  key={key.id}
+                                  onClick={() => {
+                                    loadSavedKey('google', key.id, key.key_name);
+                                    setShowKeyDropdown(prev => ({ ...prev, google: false }));
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                >
+                                  {key.key_name || 'Default Key'}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <label className={theme === 'dark' ? 'label' : 'label-light'}>Groq API Key</label>
@@ -1240,6 +1274,32 @@ export default function Dashboard({ theme }) {
                         placeholder="gsk_..."
                         className={inputClass}
                       />
+                      {savedKeys.filter(k => k.provider === 'groq').length > 0 && (
+                        <div className="mt-2 relative">
+                          <button
+                            onClick={() => setShowKeyDropdown(prev => ({ ...prev, groq: !prev.groq }))}
+                            className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                          >
+                            <Key className="w-3 h-3" /> Use saved key <ChevronDown className="w-3 h-3" />
+                          </button>
+                          {showKeyDropdown['groq'] && (
+                            <div className={`absolute left-0 top-full mt-2 w-full rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                              {savedKeys.filter(k => k.provider === 'groq').map(key => (
+                                <button
+                                  key={key.id}
+                                  onClick={() => {
+                                    loadSavedKey('groq', key.id, key.key_name);
+                                    setShowKeyDropdown(prev => ({ ...prev, groq: false }));
+                                  }}
+                                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                >
+                                  {key.key_name || 'Default Key'}
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
@@ -1267,7 +1327,7 @@ export default function Dashboard({ theme }) {
                           if(isApiStepValid()) setCurrentStep(2);
                           else showToast("Please enter an API Key", "error");
                       }} 
-                      className="btn-primary"
+                      className="btn-primary flex items-center justify-center whitespace-nowrap"
                       disabled={!isApiStepValid()}
                     >
                       Next: Define Identity <ArrowRight className="w-4 h-4 ml-2" />
@@ -1282,12 +1342,14 @@ export default function Dashboard({ theme }) {
                 <>
                   {/* Step 2: My Brands Only */}
                   <CollapsibleSection 
-                    title="2. Define Your Identity" 
+                    key={`step2_${currentStep === 2}`}
+                    title="2. Brands to Track" 
                     icon={<Target className="w-5 h-5 text-accent-400" />}
                     theme={theme}
                     isComplete={isBrandStepValid()}
-                    isOpen={currentStep === 2}
-                    onToggle={() => { if(currentStep > 2) setCurrentStep(2); }}
+                    defaultOpen={currentStep === 2}
+                    isOpen={undefined}
+                    onToggle={undefined}
                     className={`${currentStep < 2 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
                   >
                     <div className="space-y-6">
@@ -1330,6 +1392,7 @@ export default function Dashboard({ theme }) {
                         </div>
                         <TagInput tags={myBrands.filter(b => b.trim())} onChange={setMyBrands} placeholder="Type brand & press Enter (e.g. Nike)" theme={theme} />
                         <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>Tip: Include aliases like "Nike.com" or "Nike Shoes"</p>
+                        <p className={`text-[10px] mt-1 ${theme === 'dark' ? 'text-navy-500' : 'text-gray-400'}`}>You can add multiple brands by pressing enter.</p>
                       </div>
                       <div className="pt-4 border-t border-gray-200/10 flex justify-end">
                         <button onClick={() => { if(isBrandStepValid()) setCurrentStep(3); else showToast("Please define at least one brand", "error"); }} className="btn-primary flex items-center justify-center whitespace-nowrap" disabled={!isBrandStepValid()}>
@@ -1341,12 +1404,14 @@ export default function Dashboard({ theme }) {
 
                   {/* Step 3: Competitors Only */}
                   <CollapsibleSection 
+                    key={`step3_${currentStep === 3}`}
                     title="3. The Competition" 
                     icon={<Users className="w-5 h-5 text-rose-400" />}
                     theme={theme}
                     isComplete={competitors.filter(c => c.trim()).length > 0}
-                    isOpen={currentStep === 3}
-                    onToggle={() => { if(currentStep > 3) setCurrentStep(3); }}
+                    defaultOpen={currentStep === 3}
+                    isOpen={undefined}
+                    onToggle={undefined}
                     className={`${currentStep < 3 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
                   >
                     <div className="space-y-6">
@@ -1388,6 +1453,7 @@ export default function Dashboard({ theme }) {
                           )}
                         </div>
                         <TagInput tags={competitors.filter(c => c.trim())} onChange={setCompetitors} placeholder="Type competitor & press Enter (e.g. Adidas)" theme={theme} />
+                        <p className={`text-[10px] mt-1 ${theme === 'dark' ? 'text-navy-500' : 'text-gray-400'}`}>You can add multiple brands by pressing enter.</p>
                       </div>
                       <div className="pt-4 border-t border-gray-200/10 flex justify-end">
                         <button onClick={() => setCurrentStep(4)} className="btn-primary flex items-center justify-center whitespace-nowrap">
@@ -1446,6 +1512,7 @@ export default function Dashboard({ theme }) {
                         )}
                       </div>
                       <TagInput tags={myBrands.filter(b => b.trim())} onChange={setMyBrands} placeholder="Type brand & press Enter" theme={theme} />
+                      <p className={`text-[10px] mt-1 ${theme === 'dark' ? 'text-navy-500' : 'text-gray-400'}`}>You can add multiple brands by pressing enter.</p>
                     </div>
 
                     {/* Competitors */}
@@ -1487,6 +1554,7 @@ export default function Dashboard({ theme }) {
                         )}
                       </div>
                       <TagInput tags={competitors.filter(c => c.trim())} onChange={setCompetitors} placeholder="Type competitor & press Enter" theme={theme} />
+                      <p className={`text-[10px] mt-1 ${theme === 'dark' ? 'text-navy-500' : 'text-gray-400'}`}>You can add multiple brands by pressing enter.</p>
                     </div>
                   </div>
                 </CollapsibleSection>
@@ -1494,12 +1562,14 @@ export default function Dashboard({ theme }) {
 
               {/* STEP 4: Intents */}
               <CollapsibleSection 
+                key={`step4_${currentStep === 4}`}
                 title={useWizardMode ? "4. Questions to Ask" : "Search Queries (Intents)"}
                 icon={<MessageSquare className="w-5 h-5 text-green-400" />}
                 theme={theme}
                 isComplete={isIntentStepValid()}
-                isOpen={useWizardMode ? currentStep === 4 : undefined}
-                onToggle={useWizardMode ? () => { if(currentStep > 4) setCurrentStep(4); } : undefined}
+                defaultOpen={useWizardMode ? currentStep === 4 : true}
+                isOpen={undefined}
+                onToggle={undefined}
                 className={`${useWizardMode && currentStep < 4 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
               >
                 <div className="space-y-6">
@@ -1715,19 +1785,19 @@ export default function Dashboard({ theme }) {
                 )}
 
                 <div className="flex gap-2">
-                  <button onClick={copyToClipboard} className={`${btnSecondaryClass} flex-1 text-sm`}>
+                  <button onClick={copyToClipboard} className={`${btnSecondaryClass} flex-1 text-sm flex items-center justify-center gap-2`}>
                     {copied ? (
                       <>
-                        <Check className="w-4 h-4 mr-1" /> Copied!
+                        <Check className="w-4 h-4" /> Copied!
                       </>
                     ) : (
                       <>
-                        <Copy className="w-4 h-4 mr-1" /> Copy YAML
+                        <Copy className="w-4 h-4" /> Copy YAML
                       </>
                     )}
                   </button>
-                  <button onClick={downloadYaml} className={`${btnSecondaryClass} flex-1 text-sm`}>
-                    <Download className="w-4 h-4 mr-1" /> Download
+                  <button onClick={downloadYaml} className={`${btnSecondaryClass} flex-1 text-sm flex items-center justify-center gap-2`}>
+                    <Download className="w-4 h-4" /> Download
                   </button>
                 </div>
               </div>

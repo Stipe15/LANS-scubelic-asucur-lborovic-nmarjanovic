@@ -382,7 +382,7 @@ export default function LandingPage({ theme }) {
               <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-600'}`}>Managed infrastructure</p>
               <ul className="space-y-3 mb-8">
                 {[
-                  'Everything in Free',
+                  'Everything is free',
                   'Cloud dashboard',
                   'Advanced analytics',
                   'Email alerts',
