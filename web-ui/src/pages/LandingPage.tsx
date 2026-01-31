@@ -503,7 +503,12 @@ export default function LandingPage({ theme }) {
               >
                 GitHub
               </a>
-              <a href="#" className={`${theme === 'dark' ? 'text-navy-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+              <a
+                href="https://github.com/nibzard/llm-answer-watcher"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${theme === 'dark' ? 'text-navy-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+              >
                 Documentation
               </a>
             </div>
