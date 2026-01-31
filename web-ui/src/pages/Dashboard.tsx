@@ -1257,168 +1257,219 @@ export default function Dashboard({ theme }) {
                 </div>
               </CollapsibleSection>
 
-              {/* STEP 2: Brands */}
-              <CollapsibleSection 
-                title={useWizardMode ? "2. Define Your Identity" : "Brands to Track"}
-                icon={<Target className="w-5 h-5 text-accent-400" />}
-                theme={theme}
-                isComplete={isBrandStepValid()}
-                isOpen={useWizardMode ? currentStep === 2 : undefined}
-                onToggle={useWizardMode ? () => { if(currentStep > 2) setCurrentStep(2); } : undefined}
-                className={useWizardMode && currentStep < 2 ? 'opacity-50 pointer-events-none' : ''}
-              >
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="label flex items-center gap-2 mb-0">
-                        <span className="tag-primary text-xs">YOUR BRANDS</span>
-                      </label>
-                      
-                      {savedBrands.some(b => b.is_mine) && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowBrandDropdown(!showBrandDropdown)}
-                            className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
-                          >
-                            <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
-                          </button>
-                          
-                          {showBrandDropdown && (
-                            <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
-                              theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
-                            }`}>
-                              {savedBrands.filter(b => b.is_mine).map(brand => (
-                                <button
-                                  key={brand.id}
-                                  onClick={() => {
-                                    if (!myBrands.includes(brand.brand_name)) {
-                                      const newBrands = [...myBrands];
-                                      if (newBrands.length === 1 && newBrands[0] === '') {
-                                        newBrands[0] = brand.brand_name;
-                                      } else {
-                                        newBrands.push(brand.brand_name);
-                                      }
-                                      setMyBrands(newBrands);
-                                    }
-                                    setShowBrandDropdown(false);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                                    theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
-                                  }`}
-                                >
-                                  {brand.brand_name}
-                                </button>
-                              ))}
+              {/* STEP 2 & 3: Brands & Competitors (Conditional Layout) */}
+              {useWizardMode ? (
+                <>
+                  {/* Step 2: My Brands Only */}
+                  <CollapsibleSection 
+                    title="2. Define Your Identity" 
+                    icon={<Target className="w-5 h-5 text-accent-400" />}
+                    theme={theme}
+                    isComplete={isBrandStepValid()}
+                    isOpen={currentStep === 2}
+                    onToggle={() => { if(currentStep > 2) setCurrentStep(2); }}
+                    className={currentStep < 2 ? 'opacity-50 pointer-events-none' : ''}
+                  >
+                    <div className="space-y-6">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="label flex items-center gap-2 mb-0">
+                            <span className="tag-primary text-xs">YOUR BRANDS</span>
+                          </label>
+                          {savedBrands.some(b => b.is_mine) && (
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+                                className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                              >
+                                <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                              </button>
+                              {showBrandDropdown && (
+                                <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                                  {savedBrands.filter(b => b.is_mine).map(brand => (
+                                    <button
+                                      key={brand.id}
+                                      onClick={() => {
+                                        if (!myBrands.includes(brand.brand_name)) {
+                                          const newBrands = [...myBrands];
+                                          if (newBrands.length === 1 && newBrands[0] === '') newBrands[0] = brand.brand_name;
+                                          else newBrands.push(brand.brand_name);
+                                          setMyBrands(newBrands);
+                                        }
+                                        setShowBrandDropdown(false);
+                                      }}
+                                      className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                    >
+                                      {brand.brand_name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
+                        <TagInput tags={myBrands.filter(b => b.trim())} onChange={setMyBrands} placeholder="Type brand & press Enter (e.g. Nike)" theme={theme} />
+                        <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>Tip: Include aliases like "Nike.com" or "Nike Shoes"</p>
+                      </div>
+                      <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                        <button onClick={() => { if(isBrandStepValid()) setCurrentStep(3); else showToast("Please define at least one brand", "error"); }} className="btn-primary" disabled={!isBrandStepValid()}>
+                          Next: The Competition <ArrowRight className="w-4 h-4 ml-2" />
+                        </button>
+                      </div>
                     </div>
-                    <TagInput 
-                      tags={myBrands.filter(b => b.trim())}
-                      onChange={setMyBrands}
-                      placeholder="Type brand & press Enter (e.g. Nike)"
-                      theme={theme}
-                    />
-                    <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
-                      Tip: Include aliases like "Nike.com" or "Nike Shoes"
-                    </p>
-                  </div>
+                  </CollapsibleSection>
 
-                  {useWizardMode && (
-                    <div className="pt-4 border-t border-gray-200/10 flex justify-end">
-                      <button 
-                        onClick={() => {
-                            if(isBrandStepValid()) setCurrentStep(3);
-                            else showToast("Please define at least one brand", "error");
-                        }} 
-                        className="btn-primary"
-                        disabled={!isBrandStepValid()}
-                      >
-                        Next: The Competition <ArrowRight className="w-4 h-4 ml-2" />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </CollapsibleSection>
-
-              {/* STEP 3: Competitors */}
-              <CollapsibleSection 
-                title={useWizardMode ? "3. The Competition" : "Competitors"}
-                icon={<Users className="w-5 h-5 text-rose-400" />}
-                theme={theme}
-                isComplete={competitors.filter(c => c.trim()).length > 0}
-                isOpen={useWizardMode ? currentStep === 3 : undefined}
-                onToggle={useWizardMode ? () => { if(currentStep > 3) setCurrentStep(3); } : undefined}
-                className={useWizardMode && currentStep < 3 ? 'opacity-50 pointer-events-none' : ''}
-              >
-                <div className="space-y-6">
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="label flex items-center gap-2 mb-0">
-                        <span className="tag-accent text-xs">COMPETITORS</span>
-                      </label>
-                      
-                      {savedBrands.some(b => !b.is_mine) && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
-                            className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
-                          >
-                            <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
-                          </button>
-                          
-                          {showCompetitorDropdown && (
-                            <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
-                              theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
-                            }`}>
-                              {savedBrands.filter(b => !b.is_mine).map(brand => (
-                                <button
-                                  key={brand.id}
-                                  onClick={() => {
-                                    if (!competitors.includes(brand.brand_name)) {
-                                      const newCompetitors = [...competitors];
-                                      if (newCompetitors.length === 1 && newCompetitors[0] === '') {
-                                        newCompetitors[0] = brand.brand_name;
-                                      } else {
-                                        newCompetitors.push(brand.brand_name);
-                                      }
-                                      setCompetitors(newCompetitors);
-                                    }
-                                    setShowCompetitorDropdown(false);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                                    theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
-                                  }`}
-                                >
-                                  {brand.brand_name}
-                                </button>
-                              ))}
+                  {/* Step 3: Competitors Only */}
+                  <CollapsibleSection 
+                    title="3. The Competition" 
+                    icon={<Users className="w-5 h-5 text-rose-400" />}
+                    theme={theme}
+                    isComplete={competitors.filter(c => c.trim()).length > 0}
+                    isOpen={currentStep === 3}
+                    onToggle={() => { if(currentStep > 3) setCurrentStep(3); }}
+                    className={currentStep < 3 ? 'opacity-50 pointer-events-none' : ''}
+                  >
+                    <div className="space-y-6">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="label flex items-center gap-2 mb-0">
+                            <span className="tag-accent text-xs">COMPETITORS</span>
+                          </label>
+                          {savedBrands.some(b => !b.is_mine) && (
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
+                                className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                              >
+                                <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                              </button>
+                              {showCompetitorDropdown && (
+                                <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                                  {savedBrands.filter(b => !b.is_mine).map(brand => (
+                                    <button
+                                      key={brand.id}
+                                      onClick={() => {
+                                        if (!competitors.includes(brand.brand_name)) {
+                                          const newCompetitors = [...competitors];
+                                          if (newCompetitors.length === 1 && newCompetitors[0] === '') newCompetitors[0] = brand.brand_name;
+                                          else newCompetitors.push(brand.brand_name);
+                                          setCompetitors(newCompetitors);
+                                        }
+                                        setShowCompetitorDropdown(false);
+                                      }}
+                                      className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                    >
+                                      {brand.brand_name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
+                        <TagInput tags={competitors.filter(c => c.trim())} onChange={setCompetitors} placeholder="Type competitor & press Enter (e.g. Adidas)" theme={theme} />
+                      </div>
+                      <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                        <button onClick={() => setCurrentStep(4)} className="btn-primary">
+                          Next: Define Questions <ArrowRight className="w-4 h-4 ml-2" />
+                        </button>
+                      </div>
                     </div>
-                    <TagInput 
-                      tags={competitors.filter(c => c.trim())}
-                      onChange={setCompetitors}
-                      placeholder="Type competitor & press Enter (e.g. Adidas)"
-                      theme={theme}
-                    />
-                  </div>
+                  </CollapsibleSection>
+                </>
+              ) : (
+                /* Classic Mode: Combined Brands Section */
+                <CollapsibleSection 
+                  title="Brands to Track" 
+                  icon={<Target className="w-5 h-5 text-accent-400" />}
+                  theme={theme}
+                  isComplete={myBrands.filter(b => b.trim()).length > 0}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* My Brands */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="label flex items-center gap-2 mb-0">
+                          <span className="tag-primary text-xs">YOUR BRANDS</span>
+                        </label>
+                        {savedBrands.some(b => b.is_mine) && (
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+                              className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                            >
+                              <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {showBrandDropdown && (
+                              <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                                {savedBrands.filter(b => b.is_mine).map(brand => (
+                                  <button
+                                    key={brand.id}
+                                    onClick={() => {
+                                      if (!myBrands.includes(brand.brand_name)) {
+                                        const newBrands = [...myBrands];
+                                        if (newBrands.length === 1 && newBrands[0] === '') newBrands[0] = brand.brand_name;
+                                        else newBrands.push(brand.brand_name);
+                                        setMyBrands(newBrands);
+                                      }
+                                      setShowBrandDropdown(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                  >
+                                    {brand.brand_name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <TagInput tags={myBrands.filter(b => b.trim())} onChange={setMyBrands} placeholder="Type brand & press Enter" theme={theme} />
+                    </div>
 
-                  {useWizardMode && (
-                    <div className="pt-4 border-t border-gray-200/10 flex justify-end">
-                      <button 
-                        onClick={() => setCurrentStep(4)} 
-                        className="btn-primary"
-                      >
-                        Next: Define Questions <ArrowRight className="w-4 h-4 ml-2" />
-                      </button>
+                    {/* Competitors */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="label flex items-center gap-2 mb-0">
+                          <span className="tag-accent text-xs">COMPETITORS</span>
+                        </label>
+                        {savedBrands.some(b => !b.is_mine) && (
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
+                              className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                            >
+                              <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {showCompetitorDropdown && (
+                              <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                                {savedBrands.filter(b => !b.is_mine).map(brand => (
+                                  <button
+                                    key={brand.id}
+                                    onClick={() => {
+                                      if (!competitors.includes(brand.brand_name)) {
+                                        const newCompetitors = [...competitors];
+                                        if (newCompetitors.length === 1 && newCompetitors[0] === '') newCompetitors[0] = brand.brand_name;
+                                        else newCompetitors.push(brand.brand_name);
+                                        setCompetitors(newCompetitors);
+                                      }
+                                      setShowCompetitorDropdown(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                  >
+                                    {brand.brand_name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <TagInput tags={competitors.filter(c => c.trim())} onChange={setCompetitors} placeholder="Type competitor & press Enter" theme={theme} />
                     </div>
-                  )}
-                </div>
-              </CollapsibleSection>
+                  </div>
+                </CollapsibleSection>
+              )}
 
               {/* STEP 4: Intents */}
               <CollapsibleSection 
