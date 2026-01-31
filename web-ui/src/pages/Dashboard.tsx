@@ -27,6 +27,7 @@ import {
   Brain,
   FileText,
   ArrowLeft,
+  ArrowRight,
   User,
   LogOut,
   Key,
@@ -473,96 +474,39 @@ export default function Dashboard({ theme }) {
     .catch(err => console.error("Failed to load settings", err));
   }, [token]);
 
+  // Load saved data (keys, brands, intents) on mount
+  useEffect(() => {
+    if (!token) return;
+
+    // Load saved API keys
+    fetch(`${API_BASE_URL}/auth/api-keys`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : [])
+    .then(data => setSavedKeys(data))
+    .catch(err => console.error('Failed to load API keys', err));
+
+    // Load saved brands
+    fetch(`${API_BASE_URL}/user/brands`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : [])
+    .then(data => setSavedBrands(data))
+    .catch(err => console.error('Failed to load brands', err));
+
+    // Load saved intents
+    fetch(`${API_BASE_URL}/user/intents`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : [])
+    .then(data => setSavedIntents(data))
+    .catch(err => console.error('Failed to load intents', err));
+  }, [token]);
+
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showCompetitorDropdown, setShowCompetitorDropdown] = useState(false);
   const [showIntentDropdown, setShowIntentDropdown] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!token) return;
-      try {
-        const [keysRes, brandsRes, intentsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/auth/api-keys`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_BASE_URL}/user/brands`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_BASE_URL}/user/intents`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        ]);
-
-        if (keysRes.ok) setSavedKeys(await keysRes.json());
-        if (brandsRes.ok) setSavedBrands(await brandsRes.json());
-        if (intentsRes.ok) setSavedIntents(await intentsRes.json());
-      } catch (err) {
-        console.error('Failed to fetch user data', err);
-      }
-    };
-    fetchUserData();
-  }, [token]);
-
-  const loadSavedKey = async (provider: string, keyName: string | null) => {
-    if (!token) return;
-    try {
-      const providerLower = provider.toLowerCase();
-      let url = `${API_BASE_URL}/auth/api-keys/${providerLower}/key`;
-      if (keyName) {
-        url += `?key_name=${encodeURIComponent(keyName)}`;
-      }
-      
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.api_key) {
-          setApiKeys(prev => ({ ...prev, [providerLower]: data.api_key }));
-          showToast(`Loaded ${keyName || 'default'} key for ${provider}`, 'success');
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load API key', err);
-      showToast('Failed to load API key', 'error');
-    }
-  };
-
-  // Set provider from query param
-  useEffect(() => {
-    const providerParam = searchParams.get('provider');
-    if (providerParam === 'both') {
-      setSelectedProvider('both');
-    } else if (providerParam === 'google' || providerParam === 'groq') {
-      setSelectedProvider(providerParam);
-    }
-  }, [searchParams]);
-
-  // Handle runId and tab params
-  useEffect(() => {
-    const runIdParam = searchParams.get('runId');
-    const tabParam = searchParams.get('tab');
-
-    if (tabParam === 'results') {
-      setActiveTab('results');
-    }
-
-    if (runIdParam) {
-      setRunId(runIdParam);
-      // Fetch results for the run
-      fetch(`${API_BASE_URL}/results/${runIdParam}`, {
-         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      })
-      .then(res => {
-        if (res.ok) return res.json();
-        throw new Error('Failed to fetch results');
-      })
-      .then(data => {
-         setResults(data);
-         setActiveTab('results');
-      })
-      .catch(err => {
-        console.error("Failed to load run results", err);
-        showToast("Failed to load run results", "error");
-      });
-    }
-  }, [searchParams, token]);
 
   // State
   const [activeTab, setActiveTab] = useState<'config' | 'results'>('config');
@@ -575,6 +519,17 @@ export default function Dashboard({ theme }) {
 
   // Get available models based on selected provider
   const availableModels = selectedProvider === 'google' ? GEMINI_MODELS : GROQ_MODELS;
+
+  const [myBrands, setMyBrands] = useState<string[]>(['']);
+  const [competitors, setCompetitors] = useState<string[]>(['']);
+  const [intents, setIntents] = useState<Intent[]>([{ id: '', prompt: '' }]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showYamlPreview, setShowYamlPreview] = useState(false);
+  const [runId, setRunId] = useState<string | null>(null);
+  const [results, setResults] = useState<any | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showKeyDropdown, setShowKeyDropdown] = useState<{[key: string]: boolean}>({});
 
   // Handle provider change - reset model to first available
   const handleProviderChange = (provider: Provider | 'both') => {
@@ -589,17 +544,18 @@ export default function Dashboard({ theme }) {
       setEnableWebSearch(true);
     }
   };
-  const [myBrands, setMyBrands] = useState<string[]>(['']);
-  const [competitors, setCompetitors] = useState<string[]>(['']);
-  const [intents, setIntents] = useState<Intent[]>([{ id: '', prompt: '' }]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [showYamlPreview, setShowYamlPreview] = useState(false);
-  const [runId, setRunId] = useState<string | null>(null);
-  const [results, setResults] = useState<any | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [showKeyDropdown, setShowKeyDropdown] = useState<{[key: string]: boolean}>({});
 
+  // Stepper State
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // Validation Helpers
+  const isApiStepValid = () => {
+    if (selectedProvider === 'both') return !!(apiKeys.google && apiKeys.groq);
+    return !!apiKeys[selectedProvider];
+  };
+  const isBrandStepValid = () => myBrands.some(b => b.trim().length > 0);
+  const isCompetitorStepValid = () => true; // Optional step
+  const isIntentStepValid = () => intents.some(i => i.prompt.trim().length > 0);
 
   // Generate YAML config
   const generateConfig = useCallback((): WatcherConfig => {
@@ -728,7 +684,27 @@ export default function Dashboard({ theme }) {
     URL.revokeObjectURL(url);
   };
 
-  const runSearch = async () => {
+  const loadSavedKey = async (provider: string, keyName: string) => {
+    try {
+      // Find key ID first
+      const keyObj = savedKeys.find(k => k.provider === provider && k.key_name === keyName);
+      if (keyObj) {
+        const res = await fetch(`${API_BASE_URL}/auth/api-keys/${keyObj.id}`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.api_key) {
+          setApiKeys(prev => ({ ...prev, [provider]: data.api_key }));
+          showToast(`Loaded ${keyName || 'default'} key for ${provider}`, 'success');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load API key', err);
+      showToast('Failed to load API key', 'error');
+    }
+  };
+
+  const handleRunWatcher = async () => {
     if (selectedProvider === 'both') {
       if (!apiKeys.google || !apiKeys.groq) {
         showToast('Please enter API keys for both Google and Groq', 'error');
@@ -1072,14 +1048,16 @@ export default function Dashboard({ theme }) {
             {/* Left Column - Configuration */}
             <div className="lg:col-span-2 space-y-4">
               
-              {/* API Key Section */}
+              {/* STEP 1: API Configuration */}
               <CollapsibleSection 
-                title="API Configuration" 
+                title="1. Connect Intelligence" 
                 icon={<Shield className="w-5 h-5 text-primary-400" />}
                 theme={theme}
-                isComplete={!!((selectedProvider === 'both' ? apiKeys.google && apiKeys.groq : apiKeys[selectedProvider]))}
+                isComplete={isApiStepValid()}
+                isOpen={currentStep === 1}
+                onToggle={() => setCurrentStep(1)}
               >
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Provider Selection */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <button
@@ -1295,81 +1273,48 @@ export default function Dashboard({ theme }) {
                   </div>
                 )}
 
-                {selectedProvider !== 'both' ? (
+                {/* Model Selection (Simplified) */}
+                {selectedProvider !== 'both' && (
                   <div>
                     <label className={theme === 'dark' ? 'label' : 'label-light'}>Model</label>
-                    <div className="relative">
-                      <select
+                    <select
                         value={selectedModel}
                         onChange={(e) => setSelectedModel(e.target.value)}
                         className={`${inputClass} appearance-none cursor-pointer`}
                       >
                         {availableModels.map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'} pointer-events-none`} />
-                    </div>
-                    <p className={`text-xs ${theme === 'dark' ? 'text-navy-500' : 'text-gray-500'} mt-1`}>
-                      {availableModels.find((m) => m.id === selectedModel)?.description}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className={theme === 'dark' ? 'label' : 'label-light'}>Google Model</label>
-                      <select
-                        value={selectedGoogleModel}
-                        onChange={(e) => setSelectedGoogleModel(e.target.value)}
-                        className={inputClass}
-                      >
-                        {GEMINI_MODELS.map((model) => (
                           <option key={model.id} value={model.id}>{model.name}</option>
                         ))}
                       </select>
-                    </div>
-                    <div>
-                      <label className={theme === 'dark' ? 'label' : 'label-light'}>Groq Model</label>
-                      <select
-                        value={selectedGroqModel}
-                        onChange={(e) => setSelectedGroqModel(e.target.value)}
-                        className={inputClass}
-                      >
-                        {GROQ_MODELS.map((model) => (
-                          <option key={model.id} value={model.id}>{model.name}</option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
                 )}
 
-                {selectedProvider === 'google' && (
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setEnableWebSearch(!enableWebSearch)}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${enableWebSearch ? 'bg-primary-500' : (theme === 'dark' ? 'bg-navy-700' : 'bg-gray-300')}`}
-                    >
-                      <div
-                        className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${enableWebSearch ? 'translate-x-6' : 'translate-x-0.5'}`}
-                      />
-                    </button>
-                    <span className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-700'}`}>Enable Google Search grounding</span>
-                  </div>
-                )}
+                <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                  <button 
+                    onClick={() => {
+                        if(isApiStepValid()) setCurrentStep(2);
+                        else showToast("Please enter an API Key", "error");
+                    }} 
+                    className="btn-primary"
+                    disabled={!isApiStepValid()}
+                  >
+                    Next: Define Identity <ArrowRight className="w-4 h-4 ml-2" />
+                  </button>
+                </div>
                 </div>
               </CollapsibleSection>
 
-              {/* Brands Section */}
+              {/* STEP 2: Brands */}
               <CollapsibleSection 
-                title="Brands to Track" 
+                title="2. Define Your Identity" 
                 icon={<Target className="w-5 h-5 text-accent-400" />}
                 theme={theme}
-                isComplete={myBrands.filter(b => b.trim()).length > 0}
+                isComplete={isBrandStepValid()}
+                isOpen={currentStep === 2}
+                onToggle={() => { if(currentStep > 2) setCurrentStep(2); }}
+                className={currentStep < 2 ? 'opacity-50 pointer-events-none' : ''}
               >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* My Brands */}
+                <div className="space-y-6">
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <label className="label flex items-center gap-2 mb-0">
@@ -1394,7 +1339,6 @@ export default function Dashboard({ theme }) {
                                   key={brand.id}
                                   onClick={() => {
                                     if (!myBrands.includes(brand.brand_name)) {
-                                      // If current input is empty, replace it, otherwise append
                                       const newBrands = [...myBrands];
                                       if (newBrands.length === 1 && newBrands[0] === '') {
                                         newBrands[0] = brand.brand_name;
@@ -1420,12 +1364,40 @@ export default function Dashboard({ theme }) {
                     <TagInput 
                       tags={myBrands.filter(b => b.trim())}
                       onChange={setMyBrands}
-                      placeholder="Type brand & press Enter"
+                      placeholder="Type brand & press Enter (e.g. Nike)"
                       theme={theme}
                     />
+                    <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
+                      Tip: Include aliases like "Nike.com" or "Nike Shoes"
+                    </p>
                   </div>
 
-                  {/* Competitors */}
+                  <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                    <button 
+                      onClick={() => {
+                          if(isBrandStepValid()) setCurrentStep(3);
+                          else showToast("Please define at least one brand", "error");
+                      }} 
+                      className="btn-primary"
+                      disabled={!isBrandStepValid()}
+                    >
+                      Next: The Competition <ArrowRight className="w-4 h-4 ml-2" />
+                    </button>
+                  </div>
+                </div>
+              </CollapsibleSection>
+
+              {/* STEP 3: Competitors */}
+              <CollapsibleSection 
+                title="3. The Competition" 
+                icon={<Users className="w-5 h-5 text-rose-400" />}
+                theme={theme}
+                isComplete={competitors.filter(c => c.trim()).length > 0}
+                isOpen={currentStep === 3}
+                onToggle={() => { if(currentStep > 3) setCurrentStep(3); }}
+                className={currentStep < 3 ? 'opacity-50 pointer-events-none' : ''}
+              >
+                <div className="space-y-6">
                   <div>
                     <div className="flex justify-between items-center mb-2">
                       <label className="label flex items-center gap-2 mb-0">
@@ -1475,138 +1447,172 @@ export default function Dashboard({ theme }) {
                     <TagInput 
                       tags={competitors.filter(c => c.trim())}
                       onChange={setCompetitors}
-                      placeholder="Type competitor & press Enter"
+                      placeholder="Type competitor & press Enter (e.g. Adidas)"
                       theme={theme}
                     />
                   </div>
+
+                  <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                    <button 
+                      onClick={() => setCurrentStep(4)} 
+                      className="btn-primary"
+                    >
+                      Next: Define Questions <ArrowRight className="w-4 h-4 ml-2" />
+                    </button>
+                  </div>
                 </div>
               </CollapsibleSection>
 
-              {/* Intents Section */}
+              {/* STEP 4: Intents */}
               <CollapsibleSection 
-                title="Search Queries (Intents)" 
+                title="4. Questions to Ask" 
                 icon={<MessageSquare className="w-5 h-5 text-green-400" />}
                 theme={theme}
-                isComplete={intents.filter(i => i.prompt.trim()).length > 0}
+                isComplete={isIntentStepValid()}
+                isOpen={currentStep === 4}
+                onToggle={() => { if(currentStep > 4) setCurrentStep(4); }}
+                className={currentStep < 4 ? 'opacity-50 pointer-events-none' : ''}
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-medium opacity-70">Quick Start Templates</h2>
-                  </div>
-                  
-                  {savedIntents.length > 0 && (
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowIntentDropdown(!showIntentDropdown)}
-                        className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
-                      >
-                        <MessageSquare className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
-                      </button>
-                      
-                      {showIntentDropdown && (
-                        <div className={`absolute right-0 top-full mt-2 w-64 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
-                          theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
-                        }`}>
-                          {savedIntents.map(intent => (
-                            <button
-                              key={intent.id}
-                              onClick={() => {
-                                // Add if not exists by checking intent_alias against id
-                                const exists = intents.some(i => i.id === intent.intent_alias);
-                                if (!exists) {
-                                  const newIntents = [...intents];
-                                  if (newIntents.length === 1 && newIntents[0].id === '' && newIntents[0].prompt === '') {
-                                    newIntents[0] = { id: intent.intent_alias, prompt: intent.prompt };
-                                  } else {
-                                    newIntents.push({ id: intent.intent_alias, prompt: intent.prompt });
-                                  }
-                                  setIntents(newIntents);
-                                }
-                                setShowIntentDropdown(false);
-                              }}
-                              className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                                theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
-                              }`}
-                            >
-                              <div className="font-medium">{intent.intent_alias}</div>
-                              <div className={`text-xs truncate ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
-                                {intent.prompt}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
+                <div className="space-y-6">
+                  {/* Suggestion Rail */}
+                  <div>
+                    <p className={`text-xs mb-3 font-medium ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>Quick Start Templates</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                      {INTENT_TEMPLATES.map((template) => (
+                        <button
+                          key={template.id}
+                          onClick={() => applyTemplate(template.id)}
+                          className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                            theme === 'dark'
+                              ? 'bg-navy-800 border-navy-700 text-navy-300 hover:border-primary-500 hover:text-primary-400'
+                              : 'bg-white border-slate-200 text-slate-600 hover:border-primary-500 hover:text-primary-600'
+                          }`}
+                        >
+                          + {template.label}
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
+                  </div>
 
-                {/* Suggestion Rail */}
-                <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
-                  {INTENT_TEMPLATES.map((template) => (
-                    <button
-                      key={template.id}
-                      onClick={() => applyTemplate(template.id)}
-                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-navy-800 border-navy-700 text-navy-300 hover:border-primary-500 hover:text-primary-400'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-primary-500 hover:text-primary-600'
-                      }`}
-                    >
-                      + {template.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="space-y-4">
-                  {intents.map((intent, index) => (
-                    <div key={index} className={`p-4 ${theme === 'dark' ? 'bg-navy-800/30' : 'bg-gray-100/50'} rounded-xl border ${theme === 'dark' ? 'border-navy-700/50' : 'border-gray-200/50'}`}>
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 space-y-3">
-                          <input
-                            type="text"
-                            value={intent.id}
-                            onChange={(e) => updateIntent(index, 'id', e.target.value)}
-                            placeholder="Intent ID (e.g., best-tools)"
-                            className={`${inputClass} text-sm`}
-                          />
-                          <div className="relative">
-                            <textarea
-                              value={intent.prompt}
-                              onChange={(e) => updateIntent(index, 'prompt', e.target.value)}
-                              placeholder="What are the best email marketing tools?"
-                              rows={3}
-                              className={`${inputClass} resize-none pr-12`}
+                  <div className="space-y-4">
+                    {intents.map((intent, index) => (
+                      <div key={index} className={`p-4 ${theme === 'dark' ? 'bg-navy-800/30' : 'bg-gray-100/50'} rounded-xl border ${theme === 'dark' ? 'border-navy-700/50' : 'border-gray-200/50'}`}>
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1 space-y-3">
+                            <input
+                              type="text"
+                              value={intent.id}
+                              onChange={(e) => updateIntent(index, 'id', e.target.value)}
+                              placeholder="Question ID (e.g., best-tools)"
+                              className={`${inputClass} text-sm`}
                             />
-                            <div className="absolute bottom-2 right-2">
-                              <PromptOptimizer
-                                currentPrompt={intent.prompt}
-                                onOptimize={(newPrompt) => updateIntent(index, 'prompt', newPrompt)}
-                                apiKey={selectedProvider === 'both' ? (apiKeys.google || apiKeys.groq) : apiKeys[selectedProvider]}
-                                provider={selectedProvider === 'both' ? (apiKeys.google ? 'google' : 'groq') : selectedProvider}
-                                modelName={selectedProvider === 'both' ? (apiKeys.google ? selectedGoogleModel : selectedGroqModel) : selectedModel}
-                                competitors={competitors}
-                                myBrands={myBrands}
-                                theme={theme}
+                            <div className="relative">
+                              <textarea
+                                value={intent.prompt}
+                                onChange={(e) => updateIntent(index, 'prompt', e.target.value)}
+                                placeholder="What are the best tools for..."
+                                rows={3}
+                                className={`${inputClass} resize-none pr-12`}
                               />
+                              <div className="absolute bottom-2 right-2">
+                                <PromptOptimizer
+                                  currentPrompt={intent.prompt}
+                                  onOptimize={(newPrompt) => updateIntent(index, 'prompt', newPrompt)}
+                                  apiKey={selectedProvider === 'both' ? (apiKeys.google || apiKeys.groq) : apiKeys[selectedProvider]}
+                                  provider={selectedProvider === 'both' ? (apiKeys.google ? 'google' : 'groq') : selectedProvider}
+                                  modelName={selectedProvider === 'both' ? (apiKeys.google ? selectedGoogleModel : selectedGroqModel) : selectedModel}
+                                  competitors={competitors}
+                                  myBrands={myBrands}
+                                  theme={theme}
+                                />
+                              </div>
                             </div>
                           </div>
+                          <button 
+                            onClick={() => removeIntent(index)} 
+                            className="btn-danger p-3"
+                            title="Remove query"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
                         </div>
-                        <button 
-                          onClick={() => removeIntent(index)} 
-                          className="btn-danger p-3"
-                          title="Remove query"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                    
+                    <button
+                      onClick={addIntent}
+                      className={`w-full py-3 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                        theme === 'dark'
+                          ? 'border-navy-700 text-navy-400 hover:border-primary-500/50 hover:text-primary-400'
+                          : 'border-gray-300 text-gray-500 hover:border-primary-400 hover:text-primary-600'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Another Question
+                    </button>
+                  </div>
 
-                  <button onClick={addIntent} className={`${btnSecondaryClass} w-full`}>
-                    <Plus className="w-4 h-4 mr-2" /> Add another query
-                  </button>
+                  <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                    <button 
+                      onClick={() => {
+                          if(isIntentStepValid()) setCurrentStep(5);
+                          else showToast("Please add at least one question", "error");
+                      }} 
+                      className="btn-primary"
+                      disabled={!isIntentStepValid()}
+                    >
+                      Next: Review & Launch <ArrowRight className="w-4 h-4 ml-2" />
+                    </button>
+                  </div>
                 </div>
               </CollapsibleSection>
+
+              {/* STEP 5: Review & Launch */}
+              {currentStep === 5 && (
+                <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-navy-800/50 border-primary-500/30 shadow-lg shadow-primary-500/5' : 'bg-white border-primary-200 shadow-xl'}`}>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                    Ready to Launch
+                  </h2>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Provider</p>
+                      <p className="font-medium capitalize">{selectedProvider}</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Brand</p>
+                      <p className="font-medium">{myBrands.filter(b => b.trim()).length} Aliases</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Competitors</p>
+                      <p className="font-medium">{competitors.filter(c => c.trim()).length} Tracked</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Questions</p>
+                      <p className="font-medium">{intents.filter(i => i.prompt.trim()).length} Queries</p>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleRunWatcher} 
+                    disabled={isRunning}
+                    className="btn-primary w-full py-4 text-lg shadow-xl shadow-primary-500/20 hover:shadow-primary-500/40 transform hover:-translate-y-0.5 transition-all"
+                  >
+                    {isRunning ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Running Analysis...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <Play className="w-5 h-5" />
+                        Run Analysis
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right Column - Preview & Actions */}
@@ -1614,7 +1620,7 @@ export default function Dashboard({ theme }) {
               {/* Run Button */}
               <div className={`${glassCardClass} p-6 glow-primary`}>
                 <button
-                  onClick={runSearch}
+                  onClick={handleRunWatcher}
                   disabled={!isConfigValid || isRunning}
                   className="btn-primary w-full flex items-center justify-center gap-2 text-lg py-4"
                 >
