@@ -1,8 +1,18 @@
-import { useNavigate } from 'react-router-dom';
-import { Search, ArrowRight } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Search, ArrowRight, ArrowLeft } from 'lucide-react';
 
 export default function FAQPage({ theme }) {
   const navigate = useNavigate();
+  const location = useLocation();
+  const fromLanding = location.state?.from === 'landing';
+
+  const handleBack = () => {
+    if (fromLanding) {
+      navigate('/');
+    } else {
+      navigate('/app');
+    }
+  };
 
   const faqs = [
     {
@@ -63,6 +73,16 @@ export default function FAQPage({ theme }) {
       <div className="max-w-4xl mx-auto px-6 py-20 relative">
         <h1 className={`text-4xl font-bold mb-12 text-center ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Frequently Asked Questions</h1>
         
+        <div className="mb-8">
+            <button 
+                onClick={handleBack}
+                className={`flex items-center gap-2 text-sm font-medium ${theme === 'dark' ? 'text-primary-400 hover:text-primary-300' : 'text-primary-600 hover:text-primary-700'} transition-colors`}
+            >
+                <ArrowLeft className="w-4 h-4" />
+                {fromLanding ? "Back to Landing Page" : "Back to Configuration"}
+            </button>
+        </div>
+
         <div className="space-y-6">
           {faqs.map((faq, index) => (
             <div key={index} className={`p-6 rounded-2xl ${theme === 'dark' ? 'bg-navy-900/50 border border-navy-800/50' : 'bg-white border border-gray-200'} backdrop-blur-sm`}>

@@ -124,7 +124,7 @@ export default function LandingPage({ theme }) {
 
             <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/faq')}
+                onClick={() => navigate('/faq', { state: { from: 'landing' } })}
                 className={`btn-ghost text-sm ${theme === 'dark' ? 'text-navy-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
               >
                 FAQ

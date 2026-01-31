@@ -937,6 +937,7 @@ export default function Dashboard({ theme }) {
                     </Link>
                     <Link
                       to="/faq"
+                      state={{ from: 'dashboard' }}
                       className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
                         theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
                       }`}
