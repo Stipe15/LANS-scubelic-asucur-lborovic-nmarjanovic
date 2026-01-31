@@ -37,6 +37,7 @@ import {
   FileSpreadsheet,
   Trash2,
   Menu,
+  TrendingUp,
 } from 'lucide-react';
 import type { WatcherConfig, Intent, BrandMention, Provider, ModelConfig, UserBrand, UserIntent } from '../types.ts';
 import { GEMINI_MODELS, GROQ_MODELS } from '../types.ts';
@@ -57,6 +58,73 @@ const INTENT_TEMPLATES = [
   { id: 'alternatives', label: 'Best Alternatives', prompt: 'What are the top 3 alternatives to [Competitor] and why should I consider [MyBrand]?' },
   { id: 'security-review', label: 'Security Review', prompt: 'How does [MyBrand] compare to [Competitor] in terms of security and compliance certifications?' },
 ];
+
+const BrandRecommendation = ({ results, theme }: { results: any, theme: string }) => {
+  if (!results || !results.intents_data) return null;
+
+  let totalMentions = 0;
+  let myMentions = 0;
+  let myRanks: number[] = [];
+
+  results.intents_data.forEach((intent: any) => {
+    intent.answers.forEach((answer: any) => {
+      totalMentions += answer.mentions.length;
+      answer.mentions.forEach((mention: any) => {
+        if (mention.is_mine) {
+          myMentions++;
+          if (mention.rank) myRanks.push(mention.rank);
+        }
+      });
+    });
+  });
+
+  const sov = totalMentions > 0 ? (myMentions / totalMentions) * 100 : 0;
+  const avgRank = myRanks.length > 0 ? myRanks.reduce((a, b) => a + b, 0) / myRanks.length : 0;
+
+  let title = "";
+  let message = "";
+  let colorClass = "";
+  let icon = null;
+
+  if (myMentions === 0) {
+    title = "Invisible to AI";
+    message = "Your brand was not mentioned in any responses. You are effectively invisible to these models for these queries. Immediate action required: Update your website content to explicitly answer these questions, and consider PR or social proof to increase brand corpus frequency.";
+    colorClass = theme === 'dark' ? "text-red-400 bg-red-500/10 border-red-500/20" : "text-red-700 bg-red-50 border-red-200";
+    icon = <AlertCircle className="w-6 h-6" />;
+  } else if (sov < 20) {
+    title = "Low Visibility";
+    message = `You have only ${sov.toFixed(1)}% Share of Voice. Competitors are dominating the conversation. Focus on differentiating your value proposition and getting mentioned in comparison articles and reviews that LLMs cite.`;
+    colorClass = theme === 'dark' ? "text-orange-400 bg-orange-500/10 border-orange-500/20" : "text-orange-700 bg-orange-50 border-orange-200";
+    icon = <AlertCircle className="w-6 h-6" />;
+  } else if (sov < 50) {
+    title = "Growing Presence";
+    message = `You have a healthy ${sov.toFixed(1)}% Share of Voice. To become the market leader, focus on "best of" lists and specific feature comparisons where you can win.`;
+    colorClass = theme === 'dark' ? "text-yellow-400 bg-yellow-500/10 border-yellow-500/20" : "text-yellow-700 bg-yellow-50 border-yellow-200";
+    icon = <TrendingUp className="w-6 h-6" />;
+  } else {
+    title = "Market Leader";
+    message = `Excellent! You command ${sov.toFixed(1)}% of mentions. Your strategy should shift to defense: monitor for new entrants and sentiment shifts.`;
+    colorClass = theme === 'dark' ? "text-green-400 bg-green-500/10 border-green-500/20" : "text-green-700 bg-green-50 border-green-200";
+    icon = <CheckCircle2 className="w-6 h-6" />;
+  }
+
+  // Rank adjustments
+  if (myMentions > 0 && avgRank > 3) {
+     message += ` However, your average rank is low (${avgRank.toFixed(1)}). Work on technical SEO and specific attribute association to climb the lists.`;
+  }
+
+  return (
+    <div className={`p-6 rounded-2xl border ${colorClass} h-full`}>
+      <div className="flex items-center gap-3 mb-3">
+        {icon}
+        <h3 className="text-lg font-bold">{title}</h3>
+      </div>
+      <p className={`text-sm ${theme === 'dark' ? 'text-navy-100' : 'text-gray-800'} leading-relaxed`}>
+        {message}
+      </p>
+    </div>
+  );
+};
 
 const StatsComparison = ({ results, theme }: { results: any, theme: string }) => {
   if (!results || !results.intents_data) return null;
@@ -258,7 +326,7 @@ const TokenUsageStats = ({ results, selectedProvider, selectedGoogleModel, selec
     });
   });
 
-  const cardStyle = `p-6 ${theme === 'dark' ? 'bg-navy-800/20 border-navy-700/40' : 'bg-gray-100/50 border-gray-200/40'} rounded-2xl border mt-8`;
+  const cardStyle = `p-6 ${theme === 'dark' ? 'bg-navy-800/20 border-navy-700/40' : 'bg-gray-100/50 border-gray-200/40'} rounded-2xl border`;
 
   return (
     <div className={cardStyle}>
@@ -2045,7 +2113,10 @@ export default function Dashboard({ theme }) {
                   ))}
                 </div>
                 {selectedProvider === 'both' && <StatsComparison results={results} theme={theme} />}
-                <TokenUsageStats results={results} selectedProvider={selectedProvider} selectedGoogleModel={selectedGoogleModel} selectedGroqModel={selectedGroqModel} theme={theme} />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                  <TokenUsageStats results={results} selectedProvider={selectedProvider} selectedGoogleModel={selectedGoogleModel} selectedGroqModel={selectedGroqModel} theme={theme} />
+                  <BrandRecommendation results={results} theme={theme} />
+                </div>
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-16 animate-fade-in-up">
