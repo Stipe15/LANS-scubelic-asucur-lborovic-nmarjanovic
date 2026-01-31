@@ -27,8 +27,10 @@ import {
   Brain,
   FileText,
   ArrowLeft,
+  ArrowRight,
   User,
   LogOut,
+  Layout,
   Key,
   Building2,
   Info,
@@ -45,6 +47,7 @@ import { Skeleton } from '../components/ui/Skeleton';
 import { StatsBar } from '../components/ui/StatsBar';
 import { TagInput } from '../components/ui/TagInput';
 import { CollapsibleSection } from '../components/ui/CollapsibleSection';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 import { PromptOptimizer } from '../components/PromptOptimizer';
 
 const INTENT_TEMPLATES = [
@@ -447,6 +450,7 @@ export default function Dashboard({ theme }) {
   const { showToast } = useToast();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const handleLogout = async () => {
     navigate('/', { replace: true });
@@ -456,96 +460,55 @@ export default function Dashboard({ theme }) {
   const [savedKeys, setSavedKeys] = useState<any[]>([]);
   const [savedBrands, setSavedBrands] = useState<UserBrand[]>([]);
   const [savedIntents, setSavedIntents] = useState<UserIntent[]>([]);
+  const [userSettings, setUserSettings] = useState<any>(null);
+
+  // Load user settings to check notification preferences
+  useEffect(() => {
+    if (!token) return;
+    fetch(`${API_BASE_URL}/user/settings`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : null)
+    .then(data => {
+      if (data) setUserSettings(data);
+    })
+    .catch(err => console.error("Failed to load settings", err));
+  }, [token]);
+
+  // Load saved data (keys, brands, intents) on mount
+  useEffect(() => {
+    if (!token) return;
+
+    // Load saved API keys
+    fetch(`${API_BASE_URL}/auth/api-keys`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : [])
+    .then(data => setSavedKeys(data))
+    .catch(err => console.error('Failed to load API keys', err));
+
+    // Load saved brands
+    fetch(`${API_BASE_URL}/user/brands`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : [])
+    .then(data => setSavedBrands(data))
+    .catch(err => console.error('Failed to load brands', err));
+
+    // Load saved intents
+    fetch(`${API_BASE_URL}/user/intents`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => res.ok ? res.json() : [])
+    .then(data => setSavedIntents(data))
+    .catch(err => console.error('Failed to load intents', err));
+  }, [token]);
+
   const [showBrandDropdown, setShowBrandDropdown] = useState(false);
   const [showCompetitorDropdown, setShowCompetitorDropdown] = useState(false);
   const [showIntentDropdown, setShowIntentDropdown] = useState(false);
   const [showExportMenu, setShowExportMenu] = useState(false);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (!token) return;
-      try {
-        const [keysRes, brandsRes, intentsRes] = await Promise.all([
-          fetch(`${API_BASE_URL}/auth/api-keys`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_BASE_URL}/user/brands`, { headers: { 'Authorization': `Bearer ${token}` } }),
-          fetch(`${API_BASE_URL}/user/intents`, { headers: { 'Authorization': `Bearer ${token}` } }),
-        ]);
-
-        if (keysRes.ok) setSavedKeys(await keysRes.json());
-        if (brandsRes.ok) setSavedBrands(await brandsRes.json());
-        if (intentsRes.ok) setSavedIntents(await intentsRes.json());
-      } catch (err) {
-        console.error('Failed to fetch user data', err);
-      }
-    };
-    fetchUserData();
-  }, [token]);
-
-  const loadSavedKey = async (provider: string, keyName: string | null) => {
-    if (!token) return;
-    try {
-      const providerLower = provider.toLowerCase();
-      let url = `${API_BASE_URL}/auth/api-keys/${providerLower}/key`;
-      if (keyName) {
-        url += `?key_name=${encodeURIComponent(keyName)}`;
-      }
-      
-      const response = await fetch(url, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data.api_key) {
-          setApiKeys(prev => ({ ...prev, [providerLower]: data.api_key }));
-          showToast(`Loaded ${keyName || 'default'} key for ${provider}`, 'success');
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load API key', err);
-      showToast('Failed to load API key', 'error');
-    }
-  };
-
-  // Set provider from query param
-  useEffect(() => {
-    const providerParam = searchParams.get('provider');
-    if (providerParam === 'both') {
-      setSelectedProvider('both');
-    } else if (providerParam === 'google' || providerParam === 'groq') {
-      setSelectedProvider(providerParam);
-    }
-  }, [searchParams]);
-
-  // Handle runId and tab params
-  useEffect(() => {
-    const runIdParam = searchParams.get('runId');
-    const tabParam = searchParams.get('tab');
-
-    if (tabParam === 'results') {
-      setActiveTab('results');
-    }
-
-    if (runIdParam) {
-      setRunId(runIdParam);
-      // Fetch results for the run
-      fetch(`${API_BASE_URL}/results/${runIdParam}`, {
-         headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-      })
-      .then(res => {
-        if (res.ok) return res.json();
-        throw new Error('Failed to fetch results');
-      })
-      .then(data => {
-         setResults(data);
-         setActiveTab('results');
-      })
-      .catch(err => {
-        console.error("Failed to load run results", err);
-        showToast("Failed to load run results", "error");
-      });
-    }
-  }, [searchParams, token]);
+  const [useWizardMode, setUseWizardMode] = useState(true);
 
   // State
   const [activeTab, setActiveTab] = useState<'config' | 'results'>('config');
@@ -558,6 +521,17 @@ export default function Dashboard({ theme }) {
 
   // Get available models based on selected provider
   const availableModels = selectedProvider === 'google' ? GEMINI_MODELS : GROQ_MODELS;
+
+  const [myBrands, setMyBrands] = useState<string[]>(['']);
+  const [competitors, setCompetitors] = useState<string[]>(['']);
+  const [intents, setIntents] = useState<Intent[]>([{ id: '', prompt: '' }]);
+  const [isRunning, setIsRunning] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [showYamlPreview, setShowYamlPreview] = useState(false);
+  const [runId, setRunId] = useState<string | null>(null);
+  const [results, setResults] = useState<any | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showKeyDropdown, setShowKeyDropdown] = useState<{[key: string]: boolean}>({});
 
   // Handle provider change - reset model to first available
   const handleProviderChange = (provider: Provider | 'both') => {
@@ -572,17 +546,18 @@ export default function Dashboard({ theme }) {
       setEnableWebSearch(true);
     }
   };
-  const [myBrands, setMyBrands] = useState<string[]>(['']);
-  const [competitors, setCompetitors] = useState<string[]>(['']);
-  const [intents, setIntents] = useState<Intent[]>([{ id: '', prompt: '' }]);
-  const [isRunning, setIsRunning] = useState(false);
-  const [copied, setCopied] = useState(false);
-  const [showYamlPreview, setShowYamlPreview] = useState(false);
-  const [runId, setRunId] = useState<string | null>(null);
-  const [results, setResults] = useState<any | null>(null);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [showKeyDropdown, setShowKeyDropdown] = useState<{[key: string]: boolean}>({});
 
+  // Stepper State
+  const [currentStep, setCurrentStep] = useState(1);
+
+  // Validation Helpers
+  const isApiStepValid = () => {
+    if (selectedProvider === 'both') return !!(apiKeys.google && apiKeys.groq);
+    return !!apiKeys[selectedProvider];
+  };
+  const isBrandStepValid = () => myBrands.some(b => b.trim().length > 0);
+  const isCompetitorStepValid = () => true; // Optional step
+  const isIntentStepValid = () => intents.some(i => i.prompt.trim().length > 0);
 
   // Generate YAML config
   const generateConfig = useCallback((): WatcherConfig => {
@@ -643,6 +618,11 @@ export default function Dashboard({ theme }) {
   }, [selectedProvider, selectedModel, selectedGoogleModel, selectedGroqModel, enableWebSearch, myBrands, competitors, intents]);
 
   const yamlOutput = yaml.dump(generateConfig(), { lineWidth: -1 });
+
+  // Dynamic Styles
+  const sectionBorderClass = useWizardMode 
+    ? 'border border-rose-500/50 ring-1 ring-rose-500/20 shadow-lg shadow-rose-500/10' 
+    : 'border border-emerald-500/50 ring-1 ring-emerald-500/20 shadow-lg shadow-emerald-500/10';
 
   // Handlers
   const addIntent = () => {
@@ -711,7 +691,27 @@ export default function Dashboard({ theme }) {
     URL.revokeObjectURL(url);
   };
 
-  const runSearch = async () => {
+  const loadSavedKey = async (provider: string, keyName: string) => {
+    try {
+      // Find key ID first
+      const keyObj = savedKeys.find(k => k.provider === provider && k.key_name === keyName);
+      if (keyObj) {
+        const res = await fetch(`${API_BASE_URL}/auth/api-keys/${keyObj.id}`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.api_key) {
+          setApiKeys(prev => ({ ...prev, [provider]: data.api_key }));
+          showToast(`Loaded ${keyName || 'default'} key for ${provider}`, 'success');
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load API key', err);
+      showToast('Failed to load API key', 'error');
+    }
+  };
+
+  const handleRunWatcher = async () => {
     if (selectedProvider === 'both') {
       if (!apiKeys.google || !apiKeys.groq) {
         showToast('Please enter API keys for both Google and Groq', 'error');
@@ -757,6 +757,25 @@ export default function Dashboard({ theme }) {
       const resultsData = await resultsResponse.json();
       setResults(resultsData);
       showToast('Search completed successfully', 'success');
+
+      // Check settings fresh to ensure we have latest preferences
+      try {
+        const settingsRes = await fetch(`${API_BASE_URL}/user/settings`, {
+           headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (settingsRes.ok) {
+           const settings = await settingsRes.json();
+           if (settings?.notifications?.browser && 'Notification' in window && Notification.permission === 'granted') {
+             showToast('Attempting to send browser notification...', 'info'); // Debug toast
+             new Notification('Scan Completed', {
+               body: 'Your brand monitoring scan has finished successfully.',
+               icon: '/vite.svg'
+             });
+           }
+        }
+      } catch (e) {
+        console.error("Failed to check notification settings", e);
+      }
       
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Unknown error';
@@ -937,6 +956,7 @@ export default function Dashboard({ theme }) {
                     </Link>
                     <Link
                       to="/faq"
+                      state={{ from: 'dashboard' }}
                       className={`block w-full text-left px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
                         theme === 'dark' ? 'hover:bg-navy-800' : 'hover:bg-gray-100'
                       }`}
@@ -949,7 +969,7 @@ export default function Dashboard({ theme }) {
                 )}
               </div>
               <button
-                onClick={() => navigate('/')}
+                onClick={() => setShowLogoutConfirm(true)}
                 className={`${btnGhostClass} p-2`}
                 title="Back to home"
               >
@@ -1032,17 +1052,51 @@ export default function Dashboard({ theme }) {
       <main className="relative max-w-7xl mx-auto px-6 py-8">
         {activeTab === 'config' ? (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column - Configuration */}
-            <div className="lg:col-span-2 space-y-4">
+            {/* Left Column - Configuration (Stepper) */}
+            <div className={`${useWizardMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-4 transition-all`}>
               
-              {/* API Key Section */}
+              {/* View Mode Toggle */}
+              <div className="flex justify-end mb-4">
+                <button
+                  onClick={() => setUseWizardMode(!useWizardMode)}
+                  className={`relative flex items-center p-1 rounded-full border transition-all duration-300 ${
+                    theme === 'dark' ? 'bg-navy-900 border-navy-700' : 'bg-white border-gray-200'
+                  }`}
+                >
+                  {/* Sliding Background */}
+                  <div
+                    className={`absolute inset-y-1 w-[50%] rounded-full shadow-md transition-all duration-300 ease-out ${
+                      useWizardMode 
+                        ? 'left-1 bg-rose-500 shadow-rose-500/20' 
+                        : 'left-[48%] bg-emerald-500 shadow-emerald-500/20'
+                    }`}
+                  />
+
+                  {/* Wizard Option */}
+                  <div className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-300 ${useWizardMode ? 'text-white' : (theme === 'dark' ? 'text-navy-400' : 'text-gray-500')}`}>
+                    <Sparkles className="w-4 h-4" />
+                    <span className="text-sm font-medium">Wizard</span>
+                  </div>
+
+                  {/* Classic Option */}
+                  <div className={`relative z-10 flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-300 ${!useWizardMode ? 'text-white' : (theme === 'dark' ? 'text-navy-400' : 'text-gray-500')}`}>
+                    <Layout className="w-4 h-4" />
+                    <span className="text-sm font-medium">Classic</span>
+                  </div>
+                </button>
+              </div>
+
+              {/* STEP 1: API Configuration */}
               <CollapsibleSection 
-                title="API Configuration" 
+                title={useWizardMode ? "1. Connect Intelligence" : "API Configuration"}
                 icon={<Shield className="w-5 h-5 text-primary-400" />}
                 theme={theme}
-                isComplete={!!((selectedProvider === 'both' ? apiKeys.google && apiKeys.groq : apiKeys[selectedProvider]))}
+                isComplete={isApiStepValid()}
+                isOpen={useWizardMode ? currentStep === 1 : undefined}
+                onToggle={useWizardMode ? () => setCurrentStep(1) : undefined}
+                className={sectionBorderClass}
               >
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {/* Provider Selection */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                     <button
@@ -1176,40 +1230,6 @@ export default function Dashboard({ theme }) {
                         placeholder="AIzaSy..."
                         className={inputClass}
                       />
-                      {savedKeys.filter(k => k.provider === 'google').length > 0 && (
-                        <div className="mt-2 relative">
-                          <button
-                            onClick={() => setShowKeyDropdown(prev => ({ ...prev, google: !prev.google }))}
-                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
-                          >
-                            <Key className="w-3 h-3" /> Use saved key <ChevronDown className="w-3 h-3" />
-                          </button>
-                          
-                          {showKeyDropdown.google && (
-                            <div className={`absolute left-0 top-full mt-1 w-full rounded-lg border shadow-lg z-20 ${
-                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
-                            }`}>
-                              {savedKeys.filter(k => k.provider === 'google').map(key => (
-                                <button
-                                  key={key.id}
-                                  onClick={() => {
-                                    loadSavedKey('google', key.key_name);
-                                    setShowKeyDropdown(prev => ({ ...prev, google: false }));
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
-                                    theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'
-                                  }`}
-                                >
-                                  {key.key_name || 'Default Key'}
-                                  <span className={`ml-2 text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
-                                    {new Date(key.created_at).toLocaleDateString()}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                     <div>
                       <label className={theme === 'dark' ? 'label' : 'label-light'}>Groq API Key</label>
@@ -1220,364 +1240,426 @@ export default function Dashboard({ theme }) {
                         placeholder="gsk_..."
                         className={inputClass}
                       />
-                      {savedKeys.filter(k => k.provider === 'groq').length > 0 && (
-                        <div className="mt-2 relative">
-                          <button
-                            onClick={() => setShowKeyDropdown(prev => ({ ...prev, groq: !prev.groq }))}
-                            className={`text-xs flex items-center gap-1 ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} hover:underline`}
-                          >
-                            <Key className="w-3 h-3" /> Use saved key <ChevronDown className="w-3 h-3" />
-                          </button>
-                          
-                          {showKeyDropdown.groq && (
-                            <div className={`absolute left-0 top-full mt-1 w-full rounded-lg border shadow-lg z-20 ${
-                              theme === 'dark' ? 'bg-navy-800 border-navy-700' : 'bg-white border-gray-200'
-                            }`}>
-                              {savedKeys.filter(k => k.provider === 'groq').map(key => (
-                                <button
-                                  key={key.id}
-                                  onClick={() => {
-                                    loadSavedKey('groq', key.key_name);
-                                    setShowKeyDropdown(prev => ({ ...prev, groq: false }));
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm first:rounded-t-lg last:rounded-b-lg ${
-                                    theme === 'dark' ? 'hover:bg-navy-700 text-navy-100' : 'hover:bg-gray-50 text-gray-900'
-                                  }`}
-                                >
-                                  {key.key_name || 'Default Key'}
-                                  <span className={`ml-2 text-xs ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
-                                    {new Date(key.created_at).toLocaleDateString()}
-                                  </span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </div>
                 )}
 
-                {selectedProvider !== 'both' ? (
+                {/* Model Selection (Simplified) */}
+                {selectedProvider !== 'both' && (
                   <div>
                     <label className={theme === 'dark' ? 'label' : 'label-light'}>Model</label>
-                    <div className="relative">
-                      <select
+                    <select
                         value={selectedModel}
                         onChange={(e) => setSelectedModel(e.target.value)}
                         className={`${inputClass} appearance-none cursor-pointer`}
                       >
                         {availableModels.map((model) => (
-                          <option key={model.id} value={model.id}>
-                            {model.name}
-                          </option>
-                        ))}
-                      </select>
-                      <ChevronDown className={`absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'} pointer-events-none`} />
-                    </div>
-                    <p className={`text-xs ${theme === 'dark' ? 'text-navy-500' : 'text-gray-500'} mt-1`}>
-                      {availableModels.find((m) => m.id === selectedModel)?.description}
-                    </p>
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className={theme === 'dark' ? 'label' : 'label-light'}>Google Model</label>
-                      <select
-                        value={selectedGoogleModel}
-                        onChange={(e) => setSelectedGoogleModel(e.target.value)}
-                        className={inputClass}
-                      >
-                        {GEMINI_MODELS.map((model) => (
                           <option key={model.id} value={model.id}>{model.name}</option>
                         ))}
                       </select>
-                    </div>
-                    <div>
-                      <label className={theme === 'dark' ? 'label' : 'label-light'}>Groq Model</label>
-                      <select
-                        value={selectedGroqModel}
-                        onChange={(e) => setSelectedGroqModel(e.target.value)}
-                        className={inputClass}
-                      >
-                        {GROQ_MODELS.map((model) => (
-                          <option key={model.id} value={model.id}>{model.name}</option>
-                        ))}
-                      </select>
-                    </div>
                   </div>
                 )}
 
-                {selectedProvider === 'google' && (
-                  <div className="flex items-center gap-3">
-                    <button
-                      onClick={() => setEnableWebSearch(!enableWebSearch)}
-                      className={`relative w-12 h-6 rounded-full transition-colors ${enableWebSearch ? 'bg-primary-500' : (theme === 'dark' ? 'bg-navy-700' : 'bg-gray-300')}`}
+                {useWizardMode && (
+                  <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                    <button 
+                      onClick={() => {
+                          if(isApiStepValid()) setCurrentStep(2);
+                          else showToast("Please enter an API Key", "error");
+                      }} 
+                      className="btn-primary"
+                      disabled={!isApiStepValid()}
                     >
-                      <div
-                        className={`absolute w-5 h-5 bg-white rounded-full top-0.5 transition-transform ${enableWebSearch ? 'translate-x-6' : 'translate-x-0.5'}`}
-                      />
+                      Next: Define Identity <ArrowRight className="w-4 h-4 ml-2" />
                     </button>
-                    <span className={`text-sm ${theme === 'dark' ? 'text-navy-300' : 'text-gray-700'}`}>Enable Google Search grounding</span>
                   </div>
                 )}
                 </div>
               </CollapsibleSection>
 
-              {/* Brands Section */}
-              <CollapsibleSection 
-                title="Brands to Track" 
-                icon={<Target className="w-5 h-5 text-accent-400" />}
-                theme={theme}
-                isComplete={myBrands.filter(b => b.trim()).length > 0}
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* My Brands */}
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="label flex items-center gap-2 mb-0">
-                        <span className="tag-primary text-xs">YOUR BRANDS</span>
-                      </label>
-                      
-                      {savedBrands.some(b => b.is_mine) && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowBrandDropdown(!showBrandDropdown)}
-                            className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
-                          >
-                            <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
-                          </button>
-                          
-                          {showBrandDropdown && (
-                            <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
-                              theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
-                            }`}>
-                              {savedBrands.filter(b => b.is_mine).map(brand => (
-                                <button
-                                  key={brand.id}
-                                  onClick={() => {
-                                    if (!myBrands.includes(brand.brand_name)) {
-                                      // If current input is empty, replace it, otherwise append
-                                      const newBrands = [...myBrands];
-                                      if (newBrands.length === 1 && newBrands[0] === '') {
-                                        newBrands[0] = brand.brand_name;
-                                      } else {
-                                        newBrands.push(brand.brand_name);
-                                      }
-                                      setMyBrands(newBrands);
-                                    }
-                                    setShowBrandDropdown(false);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                                    theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
-                                  }`}
-                                >
-                                  {brand.brand_name}
-                                </button>
-                              ))}
+              {/* STEP 2 & 3: Brands & Competitors (Conditional Layout) */}
+              {useWizardMode ? (
+                <>
+                  {/* Step 2: My Brands Only */}
+                  <CollapsibleSection 
+                    title="2. Define Your Identity" 
+                    icon={<Target className="w-5 h-5 text-accent-400" />}
+                    theme={theme}
+                    isComplete={isBrandStepValid()}
+                    isOpen={currentStep === 2}
+                    onToggle={() => { if(currentStep > 2) setCurrentStep(2); }}
+                    className={`${currentStep < 2 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
+                  >
+                    <div className="space-y-6">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="label flex items-center gap-2 mb-0">
+                            <span className="tag-primary text-xs">YOUR BRANDS</span>
+                          </label>
+                          {savedBrands.some(b => b.is_mine) && (
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+                                className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                              >
+                                <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                              </button>
+                              {showBrandDropdown && (
+                                <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                                  {savedBrands.filter(b => b.is_mine).map(brand => (
+                                    <button
+                                      key={brand.id}
+                                      onClick={() => {
+                                        if (!myBrands.includes(brand.brand_name)) {
+                                          const newBrands = [...myBrands];
+                                          if (newBrands.length === 1 && newBrands[0] === '') newBrands[0] = brand.brand_name;
+                                          else newBrands.push(brand.brand_name);
+                                          setMyBrands(newBrands);
+                                        }
+                                        setShowBrandDropdown(false);
+                                      }}
+                                      className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                    >
+                                      {brand.brand_name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
-                      )}
-                    </div>
-                    <TagInput 
-                      tags={myBrands.filter(b => b.trim())}
-                      onChange={setMyBrands}
-                      placeholder="Type brand & press Enter"
-                      theme={theme}
-                    />
-                  </div>
-
-                  {/* Competitors */}
-                  <div>
-                    <div className="flex justify-between items-center mb-2">
-                      <label className="label flex items-center gap-2 mb-0">
-                        <span className="tag-accent text-xs">COMPETITORS</span>
-                      </label>
-                      
-                      {savedBrands.some(b => !b.is_mine) && (
-                        <div className="relative">
-                          <button
-                            onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
-                            className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
-                          >
-                            <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
-                          </button>
-                          
-                          {showCompetitorDropdown && (
-                            <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
-                              theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
-                            }`}>
-                              {savedBrands.filter(b => !b.is_mine).map(brand => (
-                                <button
-                                  key={brand.id}
-                                  onClick={() => {
-                                    if (!competitors.includes(brand.brand_name)) {
-                                      const newCompetitors = [...competitors];
-                                      if (newCompetitors.length === 1 && newCompetitors[0] === '') {
-                                        newCompetitors[0] = brand.brand_name;
-                                      } else {
-                                        newCompetitors.push(brand.brand_name);
-                                      }
-                                      setCompetitors(newCompetitors);
-                                    }
-                                    setShowCompetitorDropdown(false);
-                                  }}
-                                  className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                                    theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
-                                  }`}
-                                >
-                                  {brand.brand_name}
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <TagInput 
-                      tags={competitors.filter(c => c.trim())}
-                      onChange={setCompetitors}
-                      placeholder="Type competitor & press Enter"
-                      theme={theme}
-                    />
-                  </div>
-                </div>
-              </CollapsibleSection>
-
-              {/* Intents Section */}
-              <CollapsibleSection 
-                title="Search Queries (Intents)" 
-                icon={<MessageSquare className="w-5 h-5 text-green-400" />}
-                theme={theme}
-                isComplete={intents.filter(i => i.prompt.trim()).length > 0}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-sm font-medium opacity-70">Quick Start Templates</h2>
-                  </div>
-                  
-                  {savedIntents.length > 0 && (
-                    <div className="relative">
-                      <button
-                        onClick={() => setShowIntentDropdown(!showIntentDropdown)}
-                        className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
-                      >
-                        <MessageSquare className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
-                      </button>
-                      
-                      {showIntentDropdown && (
-                        <div className={`absolute right-0 top-full mt-2 w-64 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${
-                          theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'
-                        }`}>
-                          {savedIntents.map(intent => (
-                            <button
-                              key={intent.id}
-                              onClick={() => {
-                                // Add if not exists by checking intent_alias against id
-                                const exists = intents.some(i => i.id === intent.intent_alias);
-                                if (!exists) {
-                                  const newIntents = [...intents];
-                                  if (newIntents.length === 1 && newIntents[0].id === '' && newIntents[0].prompt === '') {
-                                    newIntents[0] = { id: intent.intent_alias, prompt: intent.prompt };
-                                  } else {
-                                    newIntents.push({ id: intent.intent_alias, prompt: intent.prompt });
-                                  }
-                                  setIntents(newIntents);
-                                }
-                                setShowIntentDropdown(false);
-                              }}
-                              className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${
-                                theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'
-                              }`}
-                            >
-                              <div className="font-medium">{intent.intent_alias}</div>
-                              <div className={`text-xs truncate ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
-                                {intent.prompt}
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                {/* Suggestion Rail */}
-                <div className="flex gap-2 overflow-x-auto pb-4 mb-2 no-scrollbar">
-                  {INTENT_TEMPLATES.map((template) => (
-                    <button
-                      key={template.id}
-                      onClick={() => applyTemplate(template.id)}
-                      className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
-                        theme === 'dark'
-                          ? 'bg-navy-800 border-navy-700 text-navy-300 hover:border-primary-500 hover:text-primary-400'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-primary-500 hover:text-primary-600'
-                      }`}
-                    >
-                      + {template.label}
-                    </button>
-                  ))}
-                </div>
-
-                <div className="space-y-4">
-                  {intents.map((intent, index) => (
-                    <div key={index} className={`p-4 ${theme === 'dark' ? 'bg-navy-800/30' : 'bg-gray-100/50'} rounded-xl border ${theme === 'dark' ? 'border-navy-700/50' : 'border-gray-200/50'}`}>
-                      <div className="flex items-start gap-4">
-                        <div className="flex-1 space-y-3">
-                          <input
-                            type="text"
-                            value={intent.id}
-                            onChange={(e) => updateIntent(index, 'id', e.target.value)}
-                            placeholder="Intent ID (e.g., best-tools)"
-                            className={`${inputClass} text-sm`}
-                          />
-                          <div className="relative">
-                            <textarea
-                              value={intent.prompt}
-                              onChange={(e) => updateIntent(index, 'prompt', e.target.value)}
-                              placeholder="What are the best email marketing tools?"
-                              rows={3}
-                              className={`${inputClass} resize-none pr-12`}
-                            />
-                            <div className="absolute bottom-2 right-2">
-                              <PromptOptimizer
-                                currentPrompt={intent.prompt}
-                                onOptimize={(newPrompt) => updateIntent(index, 'prompt', newPrompt)}
-                                apiKey={selectedProvider === 'both' ? (apiKeys.google || apiKeys.groq) : apiKeys[selectedProvider]}
-                                provider={selectedProvider === 'both' ? (apiKeys.google ? 'google' : 'groq') : selectedProvider}
-                                modelName={selectedProvider === 'both' ? (apiKeys.google ? selectedGoogleModel : selectedGroqModel) : selectedModel}
-                                competitors={competitors}
-                                myBrands={myBrands}
-                                theme={theme}
-                              />
-                            </div>
-                          </div>
-                        </div>
-                        <button 
-                          onClick={() => removeIntent(index)} 
-                          className="btn-danger p-3"
-                          title="Remove query"
-                        >
-                          <Trash2 className="w-4 h-4" />
+                        <TagInput tags={myBrands.filter(b => b.trim())} onChange={setMyBrands} placeholder="Type brand & press Enter (e.g. Nike)" theme={theme} />
+                        <p className={`text-xs mt-2 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>Tip: Include aliases like "Nike.com" or "Nike Shoes"</p>
+                      </div>
+                      <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                        <button onClick={() => { if(isBrandStepValid()) setCurrentStep(3); else showToast("Please define at least one brand", "error"); }} className="btn-primary" disabled={!isBrandStepValid()}>
+                          Next: The Competition <ArrowRight className="w-4 h-4 ml-2" />
                         </button>
                       </div>
                     </div>
-                  ))}
+                  </CollapsibleSection>
 
-                  <button onClick={addIntent} className={`${btnSecondaryClass} w-full`}>
-                    <Plus className="w-4 h-4 mr-2" /> Add another query
-                  </button>
+                  {/* Step 3: Competitors Only */}
+                  <CollapsibleSection 
+                    title="3. The Competition" 
+                    icon={<Users className="w-5 h-5 text-rose-400" />}
+                    theme={theme}
+                    isComplete={competitors.filter(c => c.trim()).length > 0}
+                    isOpen={currentStep === 3}
+                    onToggle={() => { if(currentStep > 3) setCurrentStep(3); }}
+                    className={`${currentStep < 3 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
+                  >
+                    <div className="space-y-6">
+                      <div>
+                        <div className="flex justify-between items-center mb-2">
+                          <label className="label flex items-center gap-2 mb-0">
+                            <span className="tag-accent text-xs">COMPETITORS</span>
+                          </label>
+                          {savedBrands.some(b => !b.is_mine) && (
+                            <div className="relative">
+                              <button
+                                onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
+                                className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                              >
+                                <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                              </button>
+                              {showCompetitorDropdown && (
+                                <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                                  {savedBrands.filter(b => !b.is_mine).map(brand => (
+                                    <button
+                                      key={brand.id}
+                                      onClick={() => {
+                                        if (!competitors.includes(brand.brand_name)) {
+                                          const newCompetitors = [...competitors];
+                                          if (newCompetitors.length === 1 && newCompetitors[0] === '') newCompetitors[0] = brand.brand_name;
+                                          else newCompetitors.push(brand.brand_name);
+                                          setCompetitors(newCompetitors);
+                                        }
+                                        setShowCompetitorDropdown(false);
+                                      }}
+                                      className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                    >
+                                      {brand.brand_name}
+                                    </button>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <TagInput tags={competitors.filter(c => c.trim())} onChange={setCompetitors} placeholder="Type competitor & press Enter (e.g. Adidas)" theme={theme} />
+                      </div>
+                      <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                        <button onClick={() => setCurrentStep(4)} className="btn-primary">
+                          Next: Define Questions <ArrowRight className="w-4 h-4 ml-2" />
+                        </button>
+                      </div>
+                    </div>
+                  </CollapsibleSection>
+                </>
+              ) : (
+                /* Classic Mode: Combined Brands Section */
+                <CollapsibleSection 
+                  title="Brands to Track" 
+                  icon={<Target className="w-5 h-5 text-accent-400" />}
+                  theme={theme}
+                  isComplete={myBrands.filter(b => b.trim()).length > 0}
+                  className={sectionBorderClass}
+                >
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* My Brands */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="label flex items-center gap-2 mb-0">
+                          <span className="tag-primary text-xs">YOUR BRANDS</span>
+                        </label>
+                        {savedBrands.some(b => b.is_mine) && (
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowBrandDropdown(!showBrandDropdown)}
+                              className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                            >
+                              <Building2 className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {showBrandDropdown && (
+                              <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                                {savedBrands.filter(b => b.is_mine).map(brand => (
+                                  <button
+                                    key={brand.id}
+                                    onClick={() => {
+                                      if (!myBrands.includes(brand.brand_name)) {
+                                        const newBrands = [...myBrands];
+                                        if (newBrands.length === 1 && newBrands[0] === '') newBrands[0] = brand.brand_name;
+                                        else newBrands.push(brand.brand_name);
+                                        setMyBrands(newBrands);
+                                      }
+                                      setShowBrandDropdown(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                  >
+                                    {brand.brand_name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <TagInput tags={myBrands.filter(b => b.trim())} onChange={setMyBrands} placeholder="Type brand & press Enter" theme={theme} />
+                    </div>
+
+                    {/* Competitors */}
+                    <div>
+                      <div className="flex justify-between items-center mb-2">
+                        <label className="label flex items-center gap-2 mb-0">
+                          <span className="tag-accent text-xs">COMPETITORS</span>
+                        </label>
+                        {savedBrands.some(b => !b.is_mine) && (
+                          <div className="relative">
+                            <button
+                              onClick={() => setShowCompetitorDropdown(!showCompetitorDropdown)}
+                              className={`text-xs font-medium flex items-center gap-1.5 px-2.5 py-1 rounded-full border transition-all ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-primary-300 hover:bg-navy-700 hover:border-primary-500/50' : 'bg-white border-gray-200 text-primary-600 hover:bg-gray-50 hover:border-primary-200'}`}
+                            >
+                              <Users className="w-3 h-3" /> Load Saved <ChevronDown className="w-3 h-3" />
+                            </button>
+                            {showCompetitorDropdown && (
+                              <div className={`absolute right-0 top-full mt-2 w-48 rounded-xl border shadow-xl z-20 backdrop-blur-xl p-1 ${theme === 'dark' ? 'bg-navy-900/90 border-navy-700/50' : 'bg-white/90 border-gray-200/50'}`}>
+                                {savedBrands.filter(b => !b.is_mine).map(brand => (
+                                  <button
+                                    key={brand.id}
+                                    onClick={() => {
+                                      if (!competitors.includes(brand.brand_name)) {
+                                        const newCompetitors = [...competitors];
+                                        if (newCompetitors.length === 1 && newCompetitors[0] === '') newCompetitors[0] = brand.brand_name;
+                                        else newCompetitors.push(brand.brand_name);
+                                        setCompetitors(newCompetitors);
+                                      }
+                                      setShowCompetitorDropdown(false);
+                                    }}
+                                    className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors ${theme === 'dark' ? 'hover:bg-white/5 text-navy-100' : 'hover:bg-black/5 text-gray-900'}`}
+                                  >
+                                    {brand.brand_name}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <TagInput tags={competitors.filter(c => c.trim())} onChange={setCompetitors} placeholder="Type competitor & press Enter" theme={theme} />
+                    </div>
+                  </div>
+                </CollapsibleSection>
+              )}
+
+              {/* STEP 4: Intents */}
+              <CollapsibleSection 
+                title={useWizardMode ? "4. Questions to Ask" : "Search Queries (Intents)"}
+                icon={<MessageSquare className="w-5 h-5 text-green-400" />}
+                theme={theme}
+                isComplete={isIntentStepValid()}
+                isOpen={useWizardMode ? currentStep === 4 : undefined}
+                onToggle={useWizardMode ? () => { if(currentStep > 4) setCurrentStep(4); } : undefined}
+                className={`${useWizardMode && currentStep < 4 ? 'opacity-50 pointer-events-none' : ''} ${sectionBorderClass}`}
+              >
+                <div className="space-y-6">
+                  {/* Suggestion Rail */}
+                  <div>
+                    <p className={`text-xs mb-3 font-medium ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>Quick Start Templates</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                      {INTENT_TEMPLATES.map((template) => (
+                        <button
+                          key={template.id}
+                          onClick={() => applyTemplate(template.id)}
+                          className={`whitespace-nowrap px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
+                            theme === 'dark'
+                              ? 'bg-navy-800 border-navy-700 text-navy-300 hover:border-primary-500 hover:text-primary-400'
+                              : 'bg-white border-slate-200 text-slate-600 hover:border-primary-500 hover:text-primary-600'
+                          }`}
+                        >
+                          + {template.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    {intents.map((intent, index) => (
+                      <div key={index} className={`p-4 ${theme === 'dark' ? 'bg-navy-800/30' : 'bg-gray-100/50'} rounded-xl border ${theme === 'dark' ? 'border-navy-700/50' : 'border-gray-200/50'}`}>
+                        <div className="flex items-start gap-4">
+                          <div className="flex-1 space-y-3">
+                            <input
+                              type="text"
+                              value={intent.id}
+                              onChange={(e) => updateIntent(index, 'id', e.target.value)}
+                              placeholder="Question ID (e.g., best-tools)"
+                              className={`${inputClass} text-sm`}
+                            />
+                            <div className="relative">
+                              <textarea
+                                value={intent.prompt}
+                                onChange={(e) => updateIntent(index, 'prompt', e.target.value)}
+                                placeholder="What are the best tools for..."
+                                rows={3}
+                                className={`${inputClass} resize-none pr-12`}
+                              />
+                              <div className="absolute bottom-2 right-2">
+                                <PromptOptimizer
+                                  currentPrompt={intent.prompt}
+                                  onOptimize={(newPrompt) => updateIntent(index, 'prompt', newPrompt)}
+                                  apiKey={selectedProvider === 'both' ? (apiKeys.google || apiKeys.groq) : apiKeys[selectedProvider]}
+                                  provider={selectedProvider === 'both' ? (apiKeys.google ? 'google' : 'groq') : selectedProvider}
+                                  modelName={selectedProvider === 'both' ? (apiKeys.google ? selectedGoogleModel : selectedGroqModel) : selectedModel}
+                                  competitors={competitors}
+                                  myBrands={myBrands}
+                                  theme={theme}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                          <button 
+                            onClick={() => removeIntent(index)} 
+                            className="btn-danger p-3"
+                            title="Remove query"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <button
+                      onClick={addIntent}
+                      className={`w-full py-3 border-2 border-dashed rounded-xl flex items-center justify-center gap-2 transition-colors ${
+                        theme === 'dark'
+                          ? 'border-navy-700 text-navy-400 hover:border-primary-500/50 hover:text-primary-400'
+                          : 'border-gray-300 text-gray-500 hover:border-primary-400 hover:text-primary-600'
+                      }`}
+                    >
+                      <Plus className="w-4 h-4" />
+                      Add Another Question
+                    </button>
+                  </div>
+
+                  {useWizardMode && (
+                    <div className="pt-4 border-t border-gray-200/10 flex justify-end">
+                      <button 
+                        onClick={() => {
+                            if(isIntentStepValid()) setCurrentStep(5);
+                            else showToast("Please add at least one question", "error");
+                        }} 
+                        className="btn-primary"
+                        disabled={!isIntentStepValid()}
+                      >
+                        Next: Review & Launch <ArrowRight className="w-4 h-4 ml-2" />
+                      </button>
+                    </div>
+                  )}
                 </div>
               </CollapsibleSection>
+
+              {/* STEP 5: Review & Launch (Wizard Only) */}
+              {useWizardMode && currentStep === 5 && (
+                <div className={`p-6 rounded-2xl border ${theme === 'dark' ? 'bg-navy-800/50 border-primary-500/30 shadow-lg shadow-primary-500/5' : 'bg-white border-primary-200 shadow-xl'}`}>
+                  <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                    <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                    Ready to Launch
+                  </h2>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Provider</p>
+                      <p className="font-medium capitalize">{selectedProvider}</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Brand</p>
+                      <p className="font-medium">{myBrands.filter(b => b.trim()).length} Aliases</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Competitors</p>
+                      <p className="font-medium">{competitors.filter(c => c.trim()).length} Tracked</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Questions</p>
+                      <p className="font-medium">{intents.filter(i => i.prompt.trim()).length} Queries</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Est. Cost</p>
+                      <p className="font-medium">~$0.001</p>
+                    </div>
+                    <div className={`p-3 rounded-lg ${theme === 'dark' ? 'bg-navy-900' : 'bg-gray-50'}`}>
+                      <p className="text-xs opacity-70 mb-1">Est. Time</p>
+                      <p className="font-medium">~5 seconds</p>
+                    </div>
+                  </div>
+
+                  <button 
+                    onClick={handleRunWatcher} 
+                    disabled={isRunning}
+                    className="btn-primary w-full py-4 text-lg shadow-xl shadow-primary-500/20 hover:shadow-primary-500/40 transform hover:-translate-y-0.5 transition-all"
+                  >
+                    {isRunning ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Running Analysis...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <Play className="w-5 h-5" />
+                        Run Analysis
+                      </span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
 
             {/* Right Column - Preview & Actions */}
-            <div className="space-y-6">
+            <div className={`space-y-6 ${useWizardMode ? 'hidden' : ''}`}>
               {/* Run Button */}
               <div className={`${glassCardClass} p-6 glow-primary`}>
                 <button
-                  onClick={runSearch}
+                  onClick={handleRunWatcher}
                   disabled={!isConfigValid || isRunning}
                   className="btn-primary w-full flex items-center justify-center gap-2 text-lg py-4"
                 >
@@ -1961,6 +2043,18 @@ export default function Dashboard({ theme }) {
           </div>
         </div>
       </footer>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+        title="Leave Dashboard?"
+        message="Are you sure you want to leave? You will be logged out of your current session."
+        confirmLabel="Logout & Leave"
+        theme={theme}
+        variant="warning"
+      />
     </div>
   );
 }

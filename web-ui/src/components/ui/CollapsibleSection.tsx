@@ -8,6 +8,8 @@ interface CollapsibleSectionProps {
   theme: string;
   isComplete?: boolean;
   defaultOpen?: boolean;
+  isOpen?: boolean; // Controlled state
+  onToggle?: () => void; // Controlled handler
   className?: string;
 }
 
@@ -18,9 +20,22 @@ export function CollapsibleSection({
   theme, 
   isComplete = false, 
   defaultOpen = true,
+  isOpen: propsIsOpen,
+  onToggle,
   className = ''
 }: CollapsibleSectionProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
+
+  // Use props.isOpen if controlled, otherwise internal state
+  const isOpen = propsIsOpen !== undefined ? propsIsOpen : internalIsOpen;
+
+  const handleToggle = () => {
+    if (onToggle) {
+      onToggle();
+    } else {
+      setInternalIsOpen(!internalIsOpen);
+    }
+  };
 
   const glassCardClass = theme === 'dark'
     ? 'glass-card'
@@ -29,8 +44,8 @@ export function CollapsibleSection({
   return (
     <div className={`${glassCardClass} overflow-hidden transition-all duration-300 ${className}`}>
       <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-6 cursor-pointer hover:bg-white/5 transition-colors"
+        onClick={handleToggle}
+        className={`w-full flex items-center justify-between p-6 cursor-pointer hover:bg-white/5 transition-colors ${isComplete && !isOpen ? 'opacity-70' : 'opacity-100'}`}
       >
         <div className="flex items-center gap-3">
           {icon}
