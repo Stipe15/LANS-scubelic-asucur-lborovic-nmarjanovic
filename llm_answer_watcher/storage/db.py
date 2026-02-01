@@ -2036,6 +2036,43 @@ def update_user_last_login(conn: sqlite3.Connection, user_id: int) -> None:
     )
 
 
+def update_user(
+    conn: sqlite3.Connection,
+    user_id: int,
+    username: str | None = None,
+    email: str | None = None,
+) -> bool:
+    """
+    Update a user profile.
+
+    Args:
+        conn: Active SQLite database connection
+        user_id: User ID
+        username: New username (optional)
+        email: New email (optional)
+
+    Returns:
+        True if updated, False if user not found
+    """
+    updates = ["updated_at = ?"]
+    params = [utc_timestamp()]
+
+    if username is not None:
+        updates.append("username = ?")
+        params.append(username.lower())
+    if email is not None:
+        updates.append("email = ?")
+        params.append(email.lower())
+
+    params.append(user_id)
+
+    cursor = conn.execute(
+        f"UPDATE users SET {', '.join(updates)} WHERE id = ?",
+        params
+    )
+    return cursor.rowcount > 0
+
+
 # ============================================================================
 # User API Key CRUD Operations
 # ============================================================================
