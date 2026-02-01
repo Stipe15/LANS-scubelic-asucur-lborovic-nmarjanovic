@@ -2646,7 +2646,17 @@ def get_all_runs(conn: sqlite3.Connection, user_id: int | None = None) -> list[d
                 ) 
                 FROM answers_raw 
                 WHERE run_id = r.run_id
-            ) as output_tokens
+            ) as output_tokens,
+            (
+                SELECT GROUP_CONCAT(DISTINCT brand_name)
+                FROM mentions
+                WHERE run_id = r.run_id AND is_mine = 1
+            ) as my_brands,
+            (
+                SELECT GROUP_CONCAT(DISTINCT brand_name)
+                FROM mentions
+                WHERE run_id = r.run_id AND is_mine = 0
+            ) as competitor_brands
         FROM runs r
     """
     
@@ -2669,6 +2679,8 @@ def get_all_runs(conn: sqlite3.Connection, user_id: int | None = None) -> list[d
             "total_cost_usd": row[4],
             "input_tokens": row[5] or 0,
             "output_tokens": row[6] or 0,
+            "my_brands": row[7] or "",
+            "competitor_brands": row[8] or "",
         })
     return runs
 

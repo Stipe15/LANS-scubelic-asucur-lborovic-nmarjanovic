@@ -8,7 +8,9 @@ import {
   Database,
   Calendar,
   Layers,
-  DollarSign
+  DollarSign,
+  Search,
+  Users
 } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
@@ -25,6 +27,8 @@ interface Run {
   total_cost_usd: number;
   input_tokens: number;
   output_tokens: number;
+  my_brands: string;
+  competitor_brands: string;
 }
 
 export default function HistoryPage({ theme }: { theme: string }) {
@@ -33,6 +37,10 @@ export default function HistoryPage({ theme }: { theme: string }) {
   const [runs, setRuns] = useState<Run[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [idFilter, setIdFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
+  const [brandFilter, setBrandFilter] = useState('');
+  const [competitorFilter, setCompetitorFilter] = useState('');
 
   useEffect(() => {
     if (!token) return;
@@ -67,6 +75,15 @@ export default function HistoryPage({ theme }: { theme: string }) {
     });
   };
 
+  const filteredRuns = runs.filter(run => {
+    const matchesId = run.run_id.toLowerCase().includes(idFilter.toLowerCase());
+    const matchesDate = !dateFilter || run.timestamp_utc.startsWith(dateFilter);
+    const matchesBrand = !brandFilter || (run.my_brands && run.my_brands.toLowerCase().includes(brandFilter.toLowerCase()));
+    const matchesCompetitor = !competitorFilter || (run.competitor_brands && run.competitor_brands.toLowerCase().includes(competitorFilter.toLowerCase()));
+    
+    return matchesId && matchesDate && matchesBrand && matchesCompetitor;
+  });
+
   const glassCardClass = theme === 'dark' 
     ? 'bg-navy-900/50 border-navy-700/50 backdrop-blur-xl' 
     : 'bg-white/80 border-gray-200/80 backdrop-blur-xl';
@@ -76,7 +93,7 @@ export default function HistoryPage({ theme }: { theme: string }) {
       <div className="max-w-6xl mx-auto">
         
         {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div className="flex items-center gap-4">
             <button 
               onClick={() => navigate('/app')}
@@ -94,6 +111,72 @@ export default function HistoryPage({ theme }: { theme: string }) {
               </p>
             </div>
           </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
+            {/* Brand Filter */}
+            <div className="relative w-full">
+              <Database className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`} />
+              <input
+                type="text"
+                placeholder="Filter by Brand..."
+                value={brandFilter}
+                onChange={(e) => setBrandFilter(e.target.value)}
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none transition-all ${
+                  theme === 'dark' 
+                    ? 'bg-navy-900/50 border-navy-700 text-white placeholder-navy-400 focus:border-primary-500/50 focus:bg-navy-900' 
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-primary-500/50'
+                }`}
+              />
+            </div>
+
+            {/* Competitor Filter */}
+            <div className="relative w-full">
+              <Users className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`} />
+              <input
+                type="text"
+                placeholder="Filter by Competitor..."
+                value={competitorFilter}
+                onChange={(e) => setCompetitorFilter(e.target.value)}
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none transition-all ${
+                  theme === 'dark' 
+                    ? 'bg-navy-900/50 border-navy-700 text-white placeholder-navy-400 focus:border-primary-500/50 focus:bg-navy-900' 
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-primary-500/50'
+                }`}
+              />
+            </div>
+
+            {/* ID Filter */}
+            <div className="relative w-full">
+              <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`} />
+              <input
+                type="text"
+                placeholder="Filter by ID..."
+                value={idFilter}
+                onChange={(e) => setIdFilter(e.target.value)}
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none transition-all ${
+                  theme === 'dark' 
+                    ? 'bg-navy-900/50 border-navy-700 text-white placeholder-navy-400 focus:border-primary-500/50 focus:bg-navy-900' 
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-primary-500/50'
+                }`}
+              />
+            </div>
+
+            {/* Date Filter */}
+            <div className="relative w-full">
+              <Calendar className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`} />
+              <input
+                type="date"
+                placeholder="Filter by Date..."
+                value={dateFilter}
+                onChange={(e) => setDateFilter(e.target.value)}
+                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none transition-all ${
+                  theme === 'dark' 
+                    ? 'bg-navy-900/50 border-navy-700 text-white placeholder-navy-400 focus:border-primary-500/50 focus:bg-navy-900 [color-scheme:dark]' 
+                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-primary-500/50'
+                }`}
+              />
+            </div>
+          </div>
         </div>
 
         {/* Content */}
@@ -106,19 +189,21 @@ export default function HistoryPage({ theme }: { theme: string }) {
             <AlertCircle className="w-5 h-5" />
             {error}
           </div>
-        ) : runs.length === 0 ? (
+        ) : filteredRuns.length === 0 ? (
           <div className={`text-center py-20 rounded-2xl border border-dashed ${theme === 'dark' ? 'border-navy-700 bg-navy-900/30' : 'border-gray-300 bg-gray-50'}`}>
             <Database className={`w-12 h-12 mx-auto mb-4 ${theme === 'dark' ? 'text-navy-600' : 'text-gray-400'}`} />
             <h3 className="text-xl font-medium mb-2">No runs found</h3>
             <p className={`${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'}`}>
-              Start your first analysis in the Dashboard to see it here.
+              {runs.length > 0 ? "Try adjusting your filter." : "Start your first analysis in the Dashboard to see it here."}
             </p>
-            <button 
-              onClick={() => navigate('/app')}
-              className="mt-6 btn-primary"
-            >
-              Go to Dashboard
-            </button>
+            {runs.length === 0 && (
+              <button 
+                onClick={() => navigate('/app')}
+                className="mt-6 btn-primary"
+              >
+                Go to Dashboard
+              </button>
+            )}
           </div>
         ) : (
           <div className={`rounded-2xl border overflow-hidden ${theme === 'dark' ? 'border-navy-700' : 'border-gray-200'} ${glassCardClass}`}>
@@ -134,7 +219,7 @@ export default function HistoryPage({ theme }: { theme: string }) {
                   </tr>
                 </thead>
                 <tbody className={`divide-y ${theme === 'dark' ? 'divide-navy-700/50' : 'divide-gray-200/50'}`}>
-                  {runs.map((run) => (
+                  {filteredRuns.map((run) => (
                     <tr 
                       key={run.run_id} 
                       className={`group transition-colors ${theme === 'dark' ? 'hover:bg-navy-800/50' : 'hover:bg-gray-50'}`}
