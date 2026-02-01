@@ -516,6 +516,7 @@ export default function Dashboard({ theme }) {
   const [searchParams] = useSearchParams();
   const { user, token, logout } = useAuth();
   const { showToast } = useToast();
+  const avatarColor = localStorage.getItem('user_avatar_color') || 'bg-primary-500';
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -585,6 +586,43 @@ export default function Dashboard({ theme }) {
       setUseWizardMode(false);
     }
   }, []);
+
+  // Handle URL params (runId, tab)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'results' || tabParam === 'config') {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!token) return;
+    const runIdParam = searchParams.get('runId');
+    
+    if (runIdParam) {
+      setRunId(runIdParam);
+      setIsRunning(true);
+      setActiveTab('results');
+
+      fetch(`${API_BASE_URL}/results/${runIdParam}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch results');
+          return res.json();
+      })
+      .then(data => {
+          setResults(data);
+      })
+      .catch(err => {
+          console.error("Error fetching run results:", err);
+          showToast("Failed to load report", "error");
+      })
+      .finally(() => {
+          setIsRunning(false);
+      });
+    }
+  }, [token, searchParams.get('runId')]);
 
   // State
   const [activeTab, setActiveTab] = useState<'config' | 'results'>('config');
@@ -1081,9 +1119,11 @@ export default function Dashboard({ theme }) {
               <div className="relative">
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className={`${btnGhostClass} p-2 ${showProfileMenu ? (theme === 'dark' ? 'bg-navy-800 text-white' : 'bg-gray-200 text-gray-900') : ''}`}
+                  className={`p-1 rounded-full transition-transform active:scale-95 ${avatarColor} ${showProfileMenu ? 'ring-2 ring-white shadow-lg' : 'shadow-md'} hover:scale-105`}
                 >
-                  <User className="w-5 h-5" />
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
                 </button>
 
                 {showProfileMenu && (
@@ -1130,7 +1170,23 @@ export default function Dashboard({ theme }) {
             <div className={`${useWizardMode ? 'lg:col-span-3' : 'lg:col-span-2'} space-y-4 transition-all`}>
               
               {/* View Mode Toggle */}
-              <div className="flex justify-end mb-4">
+              <div className="flex justify-between items-center mb-4">
+                <div className="font-mono font-bold text-3xl flex items-center">
+                   <span 
+                     className={`animate-typing bg-clip-text text-transparent bg-gradient-to-r ${
+                       !useWizardMode 
+                         ? 'from-emerald-500 to-teal-500 drop-shadow-[0_0_10px_rgba(16,185,129,0.5)]' 
+                         : 'from-rose-500 to-rose-600 drop-shadow-[0_0_10px_rgba(244,63,94,0.5)]'
+                     }`} 
+                     style={{ 
+                       width: '19ch', 
+                       '--cursor-color': !useWizardMode ? '#10b981' : '#f43f5e' 
+                     } as React.CSSProperties}
+                   >
+                     LLM Answer Watcher
+                   </span>
+                </div>
+
                 <button
                   onClick={() => setUseWizardMode(!useWizardMode)}
                   className={`relative flex items-center p-1 rounded-full border transition-all duration-300 ${
@@ -1775,7 +1831,7 @@ export default function Dashboard({ theme }) {
                   <button 
                     onClick={handleRunWatcher} 
                     disabled={isRunning}
-                    className="btn-primary w-full py-4 text-lg shadow-xl shadow-primary-500/20 hover:shadow-primary-500/40 transform hover:-translate-y-0.5 transition-all"
+                    className={`btn-primary w-full py-4 text-lg transform hover:-translate-y-0.5 transition-all ${useWizardMode ? 'shadow-xl shadow-primary-500/20 hover:shadow-primary-500/40' : 'shadow-xl shadow-emerald-500/40 hover:shadow-emerald-500/60'}`}
                   >
                     {isRunning ? (
                       <span className="flex items-center justify-center gap-2">
@@ -1796,11 +1852,11 @@ export default function Dashboard({ theme }) {
             {/* Right Column - Preview & Actions */}
             <div className={`space-y-6 ${useWizardMode ? 'hidden' : ''}`}>
               {/* Run Button */}
-              <div className={`${glassCardClass} p-6 glow-primary`}>
+              <div className={`${glassCardClass} p-6 ${useWizardMode ? 'glow-primary' : 'glow-emerald'}`}>
                 <button
                   onClick={handleRunWatcher}
                   disabled={!isConfigValid || isRunning}
-                  className="btn-primary w-full flex items-center justify-center gap-2 text-lg py-4"
+                  className={`btn-primary w-full flex items-center justify-center gap-2 text-lg py-4 ${!useWizardMode ? 'shadow-emerald-500/50' : ''}`}
                 >
                   {isRunning ? (
                     <>

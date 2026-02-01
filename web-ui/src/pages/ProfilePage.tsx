@@ -106,17 +106,40 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
     if (user?.username) setDisplayName(user.username);
   }, [token, user]);
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
       setIsSavingProfile(true);
-      // Simulate API call
-      setTimeout(() => {
+      setError('');
+      setSuccess('');
+      
+      try {
+          // Save local preferences
           localStorage.setItem('user_avatar_color', avatarColor);
           localStorage.setItem('default_view_mode', defaultView);
-          // In a real app, we'd update the display name via API
-          setIsSavingProfile(false);
-          setSuccess('Profile preferences updated');
+
+          // Update backend profile if changed
+          if (displayName && displayName !== user?.username) {
+              const res = await fetch(`${API_BASE_URL}/auth/me`, {
+                  method: 'PUT',
+                  headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${token}` 
+                  },
+                  body: JSON.stringify({ username: displayName })
+              });
+
+              if (!res.ok) {
+                  const data = await res.json();
+                  throw new Error(data.detail || "Failed to update profile");
+              }
+          }
+
+          setSuccess('Profile updated successfully. Please reload to see changes globally.');
           setTimeout(() => setSuccess(''), 3000);
-      }, 800);
+      } catch (err: any) {
+          setError(err.message || 'Failed to update profile');
+      } finally {
+          setIsSavingProfile(false);
+      }
   };
 
   const fetchApiKeys = async () => {

@@ -17,6 +17,7 @@ from llm_answer_watcher.auth.schemas import (
     UserCreate,
     UserLogin,
     UserResponse,
+    UserUpdate,
 )
 from llm_answer_watcher.auth.security import (
     create_access_token,
@@ -35,12 +36,14 @@ from llm_answer_watcher.storage.db import (
     get_user_api_keys,
     get_user_by_email,
     get_user_by_username,
+    get_user_by_id,
     init_db_if_needed,
     revoke_all_user_refresh_tokens,
     revoke_refresh_token,
     store_refresh_token,
     update_user_api_key,
     update_user_last_login,
+    update_user,
 )
 from llm_answer_watcher.utils.time import utc_timestamp
 
@@ -320,6 +323,67 @@ async def get_me(current_user: dict = Depends(get_current_user)):
         email=current_user["email"],
         created_at=current_user["created_at"],
         is_active=current_user["is_active"],
+    )
+
+
+@router.put("/me", response_model=UserResponse)
+async def update_me(
+    user_update: UserUpdate,
+    current_user: dict = Depends(get_current_user),
+    db_path: str = Depends(get_db_path),
+):
+    """
+    Update current user profile.
+
+    Args:
+        user_update: New profile data
+        current_user: Current authenticated user
+
+    Returns:
+        Updated user profile
+    """
+    init_db_if_needed(db_path)
+
+    with sqlite3.connect(db_path) as conn:
+        # Check if username exists if being updated
+        if user_update.username and user_update.username != current_user["username"]:
+            existing = get_user_by_username(conn, user_update.username)
+            if existing:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Username already taken",
+                )
+
+        # Check if email exists if being updated
+        if user_update.email and user_update.email != current_user["email"]:
+            existing = get_user_by_email(conn, user_update.email)
+            if existing:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Email already taken",
+                )
+
+        updated = update_user(
+            conn,
+            current_user["id"],
+            username=user_update.username,
+            email=user_update.email,
+        )
+        
+        if not updated:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        # Fetch updated user
+        user = get_user_by_id(conn, current_user["id"])
+
+    logger.info(f"User profile updated: {user['username']}")
+
+    return UserResponse(
+        id=user["id"],
+        username=user["username"],
+        email=user["email"],
+        created_at=user["created_at"],
+        is_active=user["is_active"],
     )
 
 
