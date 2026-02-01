@@ -587,6 +587,43 @@ export default function Dashboard({ theme }) {
     }
   }, []);
 
+  // Handle URL params (runId, tab)
+  useEffect(() => {
+    const tabParam = searchParams.get('tab');
+    if (tabParam === 'results' || tabParam === 'config') {
+      setActiveTab(tabParam);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!token) return;
+    const runIdParam = searchParams.get('runId');
+    
+    if (runIdParam) {
+      setRunId(runIdParam);
+      setIsRunning(true);
+      setActiveTab('results');
+
+      fetch(`${API_BASE_URL}/results/${runIdParam}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => {
+          if (!res.ok) throw new Error('Failed to fetch results');
+          return res.json();
+      })
+      .then(data => {
+          setResults(data);
+      })
+      .catch(err => {
+          console.error("Error fetching run results:", err);
+          showToast("Failed to load report", "error");
+      })
+      .finally(() => {
+          setIsRunning(false);
+      });
+    }
+  }, [token, searchParams.get('runId')]);
+
   // State
   const [activeTab, setActiveTab] = useState<'config' | 'results'>('config');
   const [selectedProvider, setSelectedProvider] = useState<Provider | 'both'>('google');

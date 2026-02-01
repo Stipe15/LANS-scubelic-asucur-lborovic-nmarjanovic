@@ -9,8 +9,7 @@ import {
   Calendar,
   Layers,
   DollarSign,
-  Search,
-  Users
+  Search
 } from 'lucide-react';
 
 import { useAuth } from '../auth/AuthContext';
@@ -28,7 +27,6 @@ interface Run {
   input_tokens: number;
   output_tokens: number;
   my_brands: string;
-  competitor_brands: string;
 }
 
 export default function HistoryPage({ theme }: { theme: string }) {
@@ -40,7 +38,6 @@ export default function HistoryPage({ theme }: { theme: string }) {
   const [idFilter, setIdFilter] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [brandFilter, setBrandFilter] = useState('');
-  const [competitorFilter, setCompetitorFilter] = useState('');
 
   useEffect(() => {
     if (!token) return;
@@ -79,9 +76,8 @@ export default function HistoryPage({ theme }: { theme: string }) {
     const matchesId = run.run_id.toLowerCase().includes(idFilter.toLowerCase());
     const matchesDate = !dateFilter || run.timestamp_utc.startsWith(dateFilter);
     const matchesBrand = !brandFilter || (run.my_brands && run.my_brands.toLowerCase().includes(brandFilter.toLowerCase()));
-    const matchesCompetitor = !competitorFilter || (run.competitor_brands && run.competitor_brands.toLowerCase().includes(competitorFilter.toLowerCase()));
     
-    return matchesId && matchesDate && matchesBrand && matchesCompetitor;
+    return matchesId && matchesDate && matchesBrand;
   });
 
   const glassCardClass = theme === 'dark' 
@@ -112,7 +108,7 @@ export default function HistoryPage({ theme }: { theme: string }) {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 w-full lg:w-auto">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 w-full lg:w-auto">
             {/* Brand Filter */}
             <div className="relative w-full">
               <Database className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`} />
@@ -121,22 +117,6 @@ export default function HistoryPage({ theme }: { theme: string }) {
                 placeholder="Filter by Brand..."
                 value={brandFilter}
                 onChange={(e) => setBrandFilter(e.target.value)}
-                className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none transition-all ${
-                  theme === 'dark' 
-                    ? 'bg-navy-900/50 border-navy-700 text-white placeholder-navy-400 focus:border-primary-500/50 focus:bg-navy-900' 
-                    : 'bg-white border-gray-200 text-gray-900 placeholder-gray-400 focus:border-primary-500/50'
-                }`}
-              />
-            </div>
-
-            {/* Competitor Filter */}
-            <div className="relative w-full">
-              <Users className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-400'}`} />
-              <input
-                type="text"
-                placeholder="Filter by Competitor..."
-                value={competitorFilter}
-                onChange={(e) => setCompetitorFilter(e.target.value)}
                 className={`w-full pl-10 pr-4 py-2.5 rounded-xl border outline-none transition-all ${
                   theme === 'dark' 
                     ? 'bg-navy-900/50 border-navy-700 text-white placeholder-navy-400 focus:border-primary-500/50 focus:bg-navy-900' 
