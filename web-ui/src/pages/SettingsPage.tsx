@@ -18,10 +18,13 @@ import {
   Monitor,
   AlignJustify,
   Layout,
-  Rows
+  Rows,
+  Sliders
 } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../context/ToastContext';
+import AccessibilitySettings from '../components/AccessibilitySettings';
+
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
@@ -402,18 +405,20 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
                           <span className={`text-xs mt-1 ${theme === 'dark' ? 'text-navy-500' : 'text-gray-500'}`}>{opt.desc}</span>
                        </button>
                     )})}
-                 </div>
-               </div>
-            </div>
-          </div>
-
-          {/* Notifications Section */}
-          <div className={`${glassCardClass} ${styles.cardPadding}`}>
-            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-              <Bell className="w-5 h-5 text-accent-400" />
-              Notifications
-            </h2>
-
+                                   </div>
+                                </div>
+                             </div>
+                           </div>
+                 
+                           {/* Accessibility Section */}
+                           <AccessibilitySettings theme={theme} />
+                 
+                           {/* Notifications Section */}
+                           <div className={`${glassCardClass} ${styles.cardPadding}`}>
+                             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                               <Bell className="w-5 h-5 text-accent-400" />
+                               Notifications
+                             </h2>
             <div className={styles.cardSpace}>
               <div className="flex items-center justify-between">
                  <div className="flex items-center gap-3">
