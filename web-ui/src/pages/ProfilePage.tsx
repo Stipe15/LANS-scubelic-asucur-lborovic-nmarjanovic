@@ -16,10 +16,15 @@ import {
   Calendar,
   Building2,
   Search,
+  Palette,
+  Layout,
+  Check,
+  Smartphone,
+  Copy
 } from 'lucide-react';
 import type { UserBrand, UserIntent } from '../types';
 
-// API base URL - same pattern as Dashboard
+// API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD ? '/api' : 'http://127.0.0.1:8000');
 
@@ -40,9 +45,33 @@ const PROVIDERS = [
   { value: 'groq', label: 'Groq' },
 ];
 
+const AVATAR_COLORS = [
+  'bg-primary-500',
+  'bg-blue-500',
+  'bg-green-500',
+  'bg-amber-500',
+  'bg-purple-500',
+  'bg-rose-500',
+];
+
+const AVATAR_TEXT_COLORS: Record<string, string> = {
+  'bg-primary-500': 'text-primary-500',
+  'bg-blue-500': 'text-blue-500',
+  'bg-green-500': 'text-green-500',
+  'bg-amber-500': 'text-amber-500',
+  'bg-purple-500': 'text-purple-500',
+  'bg-rose-500': 'text-rose-500',
+};
+
 export default function ProfilePage({ theme }: ProfilePageProps) {
   const { user, token, logout } = useAuth();
   const navigate = useNavigate();
+
+  // Settings State (Local Storage for demo/premium feel)
+  const [displayName, setDisplayName] = useState(user?.username || '');
+  const [avatarColor, setAvatarColor] = useState(localStorage.getItem('user_avatar_color') || 'bg-primary-500');
+  const [defaultView, setDefaultView] = useState(localStorage.getItem('default_view_mode') || 'wizard');
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   const [apiKeys, setApiKeys] = useState<StoredAPIKey[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -74,7 +103,21 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
     fetchApiKeys();
     fetchBrands();
     fetchIntents();
-  }, [token]);
+    if (user?.username) setDisplayName(user.username);
+  }, [token, user]);
+
+  const handleSaveProfile = () => {
+      setIsSavingProfile(true);
+      // Simulate API call
+      setTimeout(() => {
+          localStorage.setItem('user_avatar_color', avatarColor);
+          localStorage.setItem('default_view_mode', defaultView);
+          // In a real app, we'd update the display name via API
+          setIsSavingProfile(false);
+          setSuccess('Profile preferences updated');
+          setTimeout(() => setSuccess(''), 3000);
+      }, 800);
+  };
 
   const fetchApiKeys = async () => {
     if (!token) return;
@@ -167,6 +210,28 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
       setError('Failed to connect to server');
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleCopyKey = async (keyId: number, provider: string) => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth/api-keys/${keyId}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.api_key) {
+          await navigator.clipboard.writeText(data.api_key);
+          setSuccess(`Copied ${provider} key to clipboard`);
+          setTimeout(() => setSuccess(''), 3000);
+        } else {
+           setError('Key data not found');
+        }
+      } else {
+        setError('Failed to fetch key for copying');
+      }
+    } catch (err) {
+      setError('Failed to copy key');
     }
   };
 
@@ -365,46 +430,134 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
           </button>
         </div>
 
-        {/* Profile Section */}
-        <div className={`${glassCardClass} p-6 rounded-2xl mb-8`}>
-          <div className="flex items-start gap-4">
-            <div className="w-16 h-16 rounded-full bg-primary-500/10 flex items-center justify-center">
-              <User className="w-8 h-8 text-primary-500" />
-            </div>
-            <div className="flex-1">
-              <h1 className={`text-2xl font-bold ${textClass}`}>{user?.username}</h1>
-              <p className={mutedTextClass}>{user?.email}</p>
-              <div className={`flex items-center gap-4 mt-2 text-sm ${mutedTextClass}`}>
-                <span className="flex items-center gap-1">
-                  <Calendar className="w-4 h-4" />
-                  Joined {user?.created_at ? formatDate(user.created_at) : 'Unknown'}
-                </span>
-                <span className={`flex items-center gap-1 ${user?.is_active ? 'text-green-500' : 'text-red-400'}`}>
-                  <Shield className="w-4 h-4" />
-                  {user?.is_active ? 'Active' : 'Inactive'}
-                </span>
+        {/* Profile Card */}
+        <div className={`${glassCardClass} p-8 rounded-2xl mb-8 relative overflow-hidden group`}>
+           <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity">
+              <User className={`w-48 h-48 ${AVATAR_TEXT_COLORS[avatarColor] || 'text-primary-500'}`} />
+           </div>
+           
+           <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
+              <div className={`w-24 h-24 rounded-full ${avatarColor} flex items-center justify-center shadow-lg ring-4 ring-white/10`}>
+                 <span className="text-3xl font-bold text-white">{displayName.charAt(0).toUpperCase()}</span>
               </div>
-            </div>
-          </div>
+              
+              <div className="flex-1 text-center md:text-left">
+                 <h1 className={`text-3xl font-bold ${textClass} mb-2`}>{displayName}</h1>
+                 <p className={mutedTextClass}>{user?.email}</p>
+                 <div className="flex items-center justify-center md:justify-start gap-4 mt-4">
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium border ${theme === 'dark' ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-green-100 text-green-700 border-green-200'}`}>
+                       Active Member
+                    </div>
+                    <div className={`px-3 py-1 rounded-full text-xs font-medium border ${theme === 'dark' ? 'bg-navy-800 border-navy-700 text-navy-300' : 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                       Free Tier
+                    </div>
+                 </div>
+              </div>
+           </div>
         </div>
 
         {/* Messages */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl mb-6 flex items-start gap-3">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-400 p-4 rounded-xl mb-6 flex items-start gap-3 animate-fade-in">
             <AlertCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <span>{error}</span>
           </div>
         )}
 
         {success && (
-          <div className="bg-green-500/10 border border-green-500/30 text-green-400 p-4 rounded-xl mb-6 flex items-start gap-3">
+          <div className="bg-green-500/10 border border-green-500/30 text-green-400 p-4 rounded-xl mb-6 flex items-start gap-3 animate-fade-in">
             <CheckCircle className="w-5 h-5 flex-shrink-0 mt-0.5" />
             <span>{success}</span>
           </div>
         )}
 
+        {/* Personalization Section */}
+        <div className={`${glassCardClass} p-6 rounded-2xl mb-8`}>
+           <div className="flex items-center gap-3 mb-6">
+              <Palette className="w-6 h-6 text-accent-500" />
+              <h2 className={`text-xl font-semibold ${textClass}`}>Profile Customization</h2>
+           </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Display Name */}
+              <div>
+                 <label className={`block text-sm font-medium ${textClass} mb-2`}>Display Name</label>
+                 <input 
+                    type="text" 
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className={inputClass}
+                    placeholder="Enter your name"
+                 />
+              </div>
+
+              {/* Avatar Color */}
+              <div>
+                 <label className={`block text-sm font-medium ${textClass} mb-2`}>Avatar Theme</label>
+                 <div className="flex gap-3">
+                    {AVATAR_COLORS.map(color => (
+                       <button
+                          key={color}
+                          onClick={() => setAvatarColor(color)}
+                          className={`w-8 h-8 rounded-full ${color} transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 ${theme === 'dark' ? 'focus:ring-offset-navy-900' : 'focus:ring-offset-white'} ${avatarColor === color ? 'ring-2 ring-white scale-110' : ''}`}
+                       />
+                    ))}
+                 </div>
+              </div>
+
+              {/* Default View */}
+              <div>
+                 <label className={`block text-sm font-medium ${textClass} mb-2`}>Default View</label>
+                 <div className="flex gap-4">
+                    <button
+                       onClick={() => setDefaultView('wizard')}
+                       className={`flex-1 p-3 rounded-xl border flex items-center gap-3 transition-all ${
+                          defaultView === 'wizard'
+                            ? (theme === 'dark' ? 'bg-primary-500/20 border-primary-500 text-primary-300' : 'bg-primary-50 border-primary-500 text-primary-700')
+                            : (theme === 'dark' ? 'bg-navy-800/50 border-navy-700 hover:border-navy-600' : 'bg-white border-gray-200 hover:bg-gray-50')
+                       }`}
+                    >
+                       <Layout className="w-5 h-5" />
+                       <span className="font-medium">Wizard</span>
+                    </button>
+                    <button
+                       onClick={() => setDefaultView('classic')}
+                       className={`flex-1 p-3 rounded-xl border flex items-center gap-3 transition-all ${
+                          defaultView === 'classic'
+                            ? (theme === 'dark' ? 'bg-primary-500/20 border-primary-500 text-primary-300' : 'bg-primary-50 border-primary-500 text-primary-700')
+                            : (theme === 'dark' ? 'bg-navy-800/50 border-navy-700 hover:border-navy-600' : 'bg-white border-gray-200 hover:bg-gray-50')
+                       }`}
+                    >
+                       <Smartphone className="w-5 h-5" />
+                       <span className="font-medium">Classic</span>
+                    </button>
+                 </div>
+              </div>
+           </div>
+
+           <div className="mt-8 flex justify-end">
+              <button 
+                 onClick={handleSaveProfile} 
+                 disabled={isSavingProfile}
+                 className="btn-primary flex items-center gap-2"
+              >
+                 {isSavingProfile ? (
+                    <>
+                       <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
+                       Saving...
+                    </>
+                 ) : (
+                    <>
+                       <Check className="w-4 h-4" />
+                       Save Preferences
+                    </>
+                 )}
+              </button>
+           </div>
+        </div>
+
         {/* API Keys Section */}
-        <div className={`${glassCardClass} p-6 rounded-2xl`}>
+        <div className={`${glassCardClass} p-6 rounded-2xl mb-8`}>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-3">
               <Key className="w-6 h-6 text-primary-500" />
@@ -558,13 +711,22 @@ export default function ProfilePage({ theme }: ProfilePageProps) {
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleDeleteKey(key.id)}
-                    className={`p-2 rounded-lg ${mutedTextClass} hover:text-red-500 hover:bg-red-500/10 transition-colors`}
-                    title="Delete key"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleCopyKey(key.id, key.provider)}
+                      className={`p-2 rounded-lg ${mutedTextClass} hover:text-primary-500 hover:bg-primary-500/10 transition-colors`}
+                      title="Copy key"
+                    >
+                      <Copy className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteKey(key.id)}
+                      className={`p-2 rounded-lg ${mutedTextClass} hover:text-red-500 hover:bg-red-500/10 transition-colors`}
+                      title="Delete key"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

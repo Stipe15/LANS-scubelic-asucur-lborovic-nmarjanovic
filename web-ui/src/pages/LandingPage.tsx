@@ -218,6 +218,27 @@ export default function LandingPage({ theme }) {
               </div>
             ))}
           </div>
+
+          {/* Typewriter Animation */}
+          <div className="mt-16 flex justify-center h-12">
+            <div className={`text-2xl md:text-3xl font-mono font-bold ${theme === 'dark' ? 'text-primary-400' : 'text-primary-600'} overflow-hidden border-r-4 border-primary-500 whitespace-nowrap animate-typing`}>
+              Track your brand.
+            </div>
+            <style>{`
+              @keyframes typing {
+                from { width: 0 }
+                to { width: 100% }
+              }
+              @keyframes blink-caret {
+                from, to { border-color: transparent }
+                50% { border-color: ${theme === 'dark' ? '#F63049' : '#F63049'}; }
+              }
+              .animate-typing {
+                animation: typing 2s steps(20, end) forwards, blink-caret .75s step-end infinite;
+                width: 17ch; /* "Track your brand." is 17 chars */
+              }
+            `}</style>
+          </div>
         </div>
       </section>
 
@@ -361,7 +382,7 @@ export default function LandingPage({ theme }) {
               <p className={`text-sm mb-6 ${theme === 'dark' ? 'text-navy-400' : 'text-gray-600'}`}>Managed infrastructure</p>
               <ul className="space-y-3 mb-8">
                 {[
-                  'Everything in Free',
+                  'Everything is free',
                   'Cloud dashboard',
                   'Advanced analytics',
                   'Email alerts',
@@ -482,7 +503,12 @@ export default function LandingPage({ theme }) {
               >
                 GitHub
               </a>
-              <a href="#" className={`${theme === 'dark' ? 'text-navy-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}>
+              <a
+                href="https://github.com/nibzard/llm-answer-watcher"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`${theme === 'dark' ? 'text-navy-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'} transition-colors`}
+              >
                 Documentation
               </a>
             </div>

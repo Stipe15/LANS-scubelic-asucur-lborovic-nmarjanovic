@@ -30,6 +30,7 @@ from llm_answer_watcher.storage.db import (
     create_user_api_key,
     delete_user_api_key,
     get_refresh_token,
+    get_user_api_key_by_id,
     get_user_api_key_by_provider,
     get_user_api_keys,
     get_user_by_email,
@@ -414,6 +415,44 @@ async def list_api_keys(
         )
         for key in keys
     ]
+
+
+@router.get("/api-keys/{key_id}")
+async def get_api_key_details(
+    key_id: int,
+    current_user: dict = Depends(get_current_user),
+    db_path: str = Depends(get_db_path),
+):
+    """
+    Get details of a specific API key, including the decrypted key.
+    """
+    init_db_if_needed(db_path)
+
+    with sqlite3.connect(db_path) as conn:
+        key_record = get_user_api_key_by_id(conn, key_id, current_user["id"])
+
+    if key_record is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="API key not found",
+        )
+
+    # Decrypt
+    try:
+        api_key = decrypt_api_key(key_record["encrypted_key"])
+    except Exception:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to decrypt API key",
+        )
+
+    return {
+        "id": key_record["id"],
+        "provider": key_record["provider"],
+        "key_name": key_record["key_name"],
+        "api_key": api_key,
+        "created_at": key_record["created_at"]
+    }
 
 
 @router.put("/api-keys/{key_id}", response_model=APIKeyResponse)

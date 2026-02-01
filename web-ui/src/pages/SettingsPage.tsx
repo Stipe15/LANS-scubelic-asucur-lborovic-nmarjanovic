@@ -557,9 +557,13 @@ export default function SettingsPage({ theme, toggleTheme }: SettingsPageProps) 
 
           {/* About */}
           <div className="text-center py-6">
-             <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 mb-4 shadow-lg shadow-primary-500/20">
-                <Settings className="w-6 h-6 text-white" />
-             </div>
+             <button
+               onClick={() => navigate('/app')}
+               className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 mb-4 shadow-lg shadow-primary-500/20 hover:scale-105 transition-transform"
+               title="Back to Configuration"
+             >
+                <ArrowLeft className="w-6 h-6 text-white" />
+             </button>
              <h3 className="text-lg font-bold mb-1">LLM Answer Watcher</h3>
              <p className={`text-sm ${theme === 'dark' ? 'text-navy-400' : 'text-gray-500'} mb-4`}>
                 Version 0.2.0-beta
