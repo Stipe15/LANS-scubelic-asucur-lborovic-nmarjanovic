@@ -516,6 +516,7 @@ export default function Dashboard({ theme }) {
   const [searchParams] = useSearchParams();
   const { user, token, logout } = useAuth();
   const { showToast } = useToast();
+  const avatarColor = localStorage.getItem('user_avatar_color') || 'bg-primary-500';
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMainMenu, setShowMainMenu] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -1081,9 +1082,11 @@ export default function Dashboard({ theme }) {
               <div className="relative">
                 <button
                   onClick={() => setShowProfileMenu(!showProfileMenu)}
-                  className={`${btnGhostClass} p-2 ${showProfileMenu ? (theme === 'dark' ? 'bg-navy-800 text-white' : 'bg-gray-200 text-gray-900') : ''}`}
+                  className={`p-1 rounded-full transition-transform active:scale-95 ${avatarColor} ${showProfileMenu ? 'ring-2 ring-white shadow-lg' : 'shadow-md'} hover:scale-105`}
                 >
-                  <User className="w-5 h-5" />
+                  <div className="w-8 h-8 flex items-center justify-center">
+                    <User className="w-5 h-5 text-white" />
+                  </div>
                 </button>
 
                 {showProfileMenu && (
