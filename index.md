@@ -65,13 +65,10 @@ Advanced word-boundary regex matching prevents false positives while accurately 
 
 All responses are stored in a local SQLite database, enabling powerful trend analysis and long-term visibility tracking.
 
-### 🤖 Multi-Provider Support
+### 🤖 Multi-Provider & Browser Support
 
-Works with **6+ LLM providers**: OpenAI, Anthropic, Mistral, X.AI Grok, Google Gemini, and Perplexity, with an extensible architecture for adding more.
-
-### 🌐 Browser Runners (BETA - New in v0.2.0)
-
-Interact with web-based LLM interfaces (ChatGPT, Perplexity) using headless browser automation via Steel API. Captures true user experience with screenshots and HTML snapshots.
+- **API Support:** Works with **6+ LLM providers**: OpenAI, Anthropic, Mistral, X.AI Grok, Google Gemini, and Perplexity.
+- **Browser Runners (New!):** Interact with web-based LLM interfaces (ChatGPT, Perplexity) using headless browser automation via Steel SDK. Captures true user experience with screenshots and HTML snapshots.
 
 ### ⚡ Async Parallelization (New in v0.2.0)
 
@@ -86,20 +83,25 @@ Automatically detects where your brand appears in ranked lists using pattern-bas
 - **Sentiment Analysis**: Analyze the tone (positive/neutral/negative) and context of each brand mention
 - **Intent Classification**: Determine user intent type, buyer journey stage, and urgency signals
 - **Prioritization**: Focus on high-value queries with ready-to-buy intent
-- **ROI Tracking**: Understand which mentions drive real business value
 
-### 💰 Dynamic Pricing & Budget Protection
+### 💰 Dynamic Pricing & Cost Analytics
 
-- Real-time pricing from [llm-prices.com](https://www.llm-prices.com)
-- Pre-run cost estimation
-- Configurable spending limits
-- Accurate web search cost calculation
+- **Real-time Pricing:** `llm-answer-watcher prices` command fetches latest pricing from [llm-prices.com](https://www.llm-prices.com).
+- **Cost Analysis:** `llm-answer-watcher costs` command provides historical spending breakdown by provider and model.
+- **Pre-run cost estimation** and configurable spending limits.
 
-### 🎯 Dual-Mode CLI
+### 🧠 Intelligent API Features
 
-- **Human Mode**: Beautiful Rich output with spinners, colors, and formatted tables
-- **Agent Mode**: Structured JSON output for AI agent automation
-- **Quiet Mode**: Minimal tab-separated output for scripts
+- **Prompt Optimization:** Built-in "Professional Prompt Engineer" API endpoint that rewrites simple queries into high-quality, analytical prompts.
+- **REST API:** Robust FastAPI backend for integration.
+
+### 🛠️ Comprehensive CLI Suite
+
+- **`run`**: Execute monitoring jobs.
+- **`demo`**: Interactive mode with mock data (no keys needed).
+- **`eval`**: QA framework to test extraction accuracy against fixtures.
+- **`export`**: Export data to CSV/JSON for external analysis.
+- **`validate`**: Verify configuration syntax and keys.
 
 ### 📋 Professional HTML Reports
 

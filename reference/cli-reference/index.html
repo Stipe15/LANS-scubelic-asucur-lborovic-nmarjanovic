@@ -2666,6 +2666,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#global-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#commands" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2682,6 +2693,17 @@
     <span class="md-ellipsis">
       
         run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        demo
       
     </span>
   </a>
@@ -2711,10 +2733,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#prices-show" class="md-nav__link">
+  <a href="#prices" class="md-nav__link">
     <span class="md-ellipsis">
       
-        prices show
+        prices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#costs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        costs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        export
       
     </span>
   </a>
@@ -3108,6 +3152,17 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
+  <a href="#global-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Global Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#commands" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3124,6 +3179,17 @@
     <span class="md-ellipsis">
       
         run
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#demo" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        demo
       
     </span>
   </a>
@@ -3153,10 +3219,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#prices-show" class="md-nav__link">
+  <a href="#prices" class="md-nav__link">
     <span class="md-ellipsis">
       
-        prices show
+        prices
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#costs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        costs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#export" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        export
       
     </span>
   </a>
@@ -3237,31 +3325,125 @@
 
 
 <h1 id="cli-reference">CLI Reference<a class="headerlink" href="#cli-reference" title="Permanent link">&para;</a></h1>
-<p>Complete command-line interface reference.</p>
+<p>This page provides a complete reference for the <code>llm-answer-watcher</code> command-line interface.</p>
+<h2 id="global-options">Global Options<a class="headerlink" href="#global-options" title="Permanent link">&para;</a></h2>
+<p>These options apply to most commands:</p>
+<ul>
+<li><code>--help</code>: Show help message and exit.</li>
+<li><code>--version</code>: Show version number and exit.</li>
+</ul>
 <h2 id="commands">Commands<a class="headerlink" href="#commands" title="Permanent link">&para;</a></h2>
 <h3 id="run"><code>run</code><a class="headerlink" href="#run" title="Permanent link">&para;</a></h3>
-<p>Execute monitoring run.</p>
+<p>Execute queries and generate brand mention reports.</p>
 <div class="language-bash highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>llm-answer-watcher<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>PATH<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </span></code></pre></div>
-<p><strong>Options</strong>:
-- <code>--config PATH</code> (required): Configuration file
-- <code>--format [human|json|quiet]</code>: Output format
-- <code>--yes, -y</code>: Skip prompts
-- <code>--force</code>: Override budget limits
-- <code>--verbose, -v</code>: Verbose logging</p>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--config, -c PATH</code> <strong>(Required)</strong>: Path to the YAML configuration file.</li>
+<li><code>--format, -f [text|json]</code>: Output format. <code>text</code> is human-friendly (default), <code>json</code> is machine-readable.</li>
+<li><code>--quiet, -q</code>: Minimal, tab-separated output. Useful for scripts.</li>
+<li><code>--yes, -y</code>: Skip all confirmation prompts (e.g., for cost approval). Recommended for automation.</li>
+<li><code>--verbose, -v</code>: Enable debug logging.</li>
+</ul>
+<p><strong>Examples:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="c1"># Standard run</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>llm-answer-watcher<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>watcher.config.yaml
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="c1"># Automation mode (JSON output, no prompts)</span>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>llm-answer-watcher<span class="w"> </span>run<span class="w"> </span>--config<span class="w"> </span>watcher.config.yaml<span class="w"> </span>--format<span class="w"> </span>json<span class="w"> </span>--yes
+</span></code></pre></div>
+<hr />
+<h3 id="demo"><code>demo</code><a class="headerlink" href="#demo" title="Permanent link">&para;</a></h3>
+<p>Run an interactive demo with sample data. No API keys or configuration required.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>llm-answer-watcher<span class="w"> </span>demo<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--mode, -m [human|agent|quiet]</code>: Output mode. Default is <code>human</code>.</li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>llm-answer-watcher<span class="w"> </span>demo
+</span></code></pre></div>
+<hr />
 <h3 id="validate"><code>validate</code><a class="headerlink" href="#validate" title="Permanent link">&para;</a></h3>
-<p>Validate configuration.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>llm-answer-watcher<span class="w"> </span>validate<span class="w"> </span>--config<span class="w"> </span>PATH<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+<p>Validate a configuration file without executing queries. Checks syntax, required fields, and API key presence.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>llm-answer-watcher<span class="w"> </span>validate<span class="w"> </span>--config<span class="w"> </span>PATH<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </span></code></pre></div>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--config, -c PATH</code> <strong>(Required)</strong>: Path to the YAML configuration file.</li>
+<li><code>--format, -f [text|json]</code>: Output format.</li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>llm-answer-watcher<span class="w"> </span>validate<span class="w"> </span>--config<span class="w"> </span>watcher.config.yaml
+</span></code></pre></div>
+<hr />
 <h3 id="eval"><code>eval</code><a class="headerlink" href="#eval" title="Permanent link">&para;</a></h3>
-<p>Run evaluation suite.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>llm-answer-watcher<span class="w"> </span><span class="nb">eval</span><span class="w"> </span>--fixtures<span class="w"> </span>PATH<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+<p>Run the evaluation suite to test extraction accuracy against ground-truth fixtures.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>llm-answer-watcher<span class="w"> </span><span class="nb">eval</span><span class="w"> </span>--fixtures<span class="w"> </span>PATH<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
 </span></code></pre></div>
-<h3 id="prices-show"><code>prices show</code><a class="headerlink" href="#prices-show" title="Permanent link">&para;</a></h3>
-<p>Display LLM pricing.</p>
-<div class="language-bash highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>llm-answer-watcher<span class="w"> </span>prices<span class="w"> </span>show<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+<p><strong>Options:</strong></p>
+<ul>
+<li><code>--fixtures, -f PATH</code> <strong>(Required)</strong>: Path to the YAML file containing test cases.</li>
+<li><code>--format [text|json]</code>: Output format.</li>
+<li><code>--save-results</code>: Save evaluation results to the database for historical tracking.</li>
+<li><code>--verbose, -v</code>: Enable debug logging.</li>
+</ul>
+<p><strong>Example:</strong></p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>llm-answer-watcher<span class="w"> </span><span class="nb">eval</span><span class="w"> </span>--fixtures<span class="w"> </span>evals/testcases/fixtures.yaml<span class="w"> </span>--save-results
 </span></code></pre></div>
-<p>See <a href="../../user-guide/usage/cli-commands/">CLI Commands</a> for detailed usage.</p>
+<hr />
+<h3 id="prices"><code>prices</code><a class="headerlink" href="#prices" title="Permanent link">&para;</a></h3>
+<p>Manage LLM pricing data.</p>
+<h4 id="prices-show"><code>prices show</code><a class="headerlink" href="#prices-show" title="Permanent link">&para;</a></h4>
+<p>Display current pricing for LLM models (cached + overrides).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>llm-answer-watcher<span class="w"> </span>prices<span class="w"> </span>show<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div>
+<p><strong>Options:</strong>
+*   <code>--provider, -p TEXT</code>: Filter by provider (e.g., <code>openai</code>, <code>anthropic</code>).
+*   <code>--format, -f [text|json]</code>: Output format.</p>
+<h4 id="prices-list"><code>prices list</code><a class="headerlink" href="#prices-list" title="Permanent link">&para;</a></h4>
+<p>List all supported models with pricing (alias for <code>prices show</code>).</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>llm-answer-watcher<span class="w"> </span>prices<span class="w"> </span>list<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div>
+<h4 id="prices-refresh"><code>prices refresh</code><a class="headerlink" href="#prices-refresh" title="Permanent link">&para;</a></h4>
+<p>Download latest pricing from <a href="https://llm-prices.com">llm-prices.com</a> and update local cache.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a>llm-answer-watcher<span class="w"> </span>prices<span class="w"> </span>refresh<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div>
+<p><strong>Options:</strong>
+*   <code>--force, -f</code>: Force refresh even if cache is fresh (&lt; 24h).
+*   <code>--format [text|json]</code>: Output format.</p>
+<hr />
+<h3 id="costs"><code>costs</code><a class="headerlink" href="#costs" title="Permanent link">&para;</a></h3>
+<p>Analyze historical costs.</p>
+<h4 id="costs-show"><code>costs show</code><a class="headerlink" href="#costs-show" title="Permanent link">&para;</a></h4>
+<p>Show cost breakdown by provider and model.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>llm-answer-watcher<span class="w"> </span>costs<span class="w"> </span>show<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div>
+<p><strong>Options:</strong>
+*   <code>--period [week|month|quarter|all]</code>: Time period to analyze. Default is <code>month</code>.
+*   <code>--db PATH</code>: Path to SQLite database. Default: <code>./output/watcher.db</code>.
+*   <code>--format, -f [text|json]</code>: Output format.</p>
+<hr />
+<h3 id="export"><code>export</code><a class="headerlink" href="#export" title="Permanent link">&para;</a></h3>
+<p>Export data to external formats.</p>
+<h4 id="export-mentions"><code>export mentions</code><a class="headerlink" href="#export-mentions" title="Permanent link">&para;</a></h4>
+<p>Export individual brand mentions to CSV or JSON.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>llm-answer-watcher<span class="w"> </span><span class="nb">export</span><span class="w"> </span>mentions<span class="w"> </span>--output<span class="w"> </span>PATH<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div>
+<p><strong>Options:</strong>
+*   <code>--output, -o PATH</code> <strong>(Required)</strong>: Output file path. Extension (<code>.csv</code> or <code>.json</code>) determines format.
+*   <code>--db PATH</code>: Path to SQLite database. Default: <code>./output/watcher.db</code>.
+*   <code>--run-id TEXT</code>: Filter by specific run ID.
+*   <code>--days INTEGER</code>: Include only last N days of data.</p>
+<h4 id="export-runs"><code>export runs</code><a class="headerlink" href="#export-runs" title="Permanent link">&para;</a></h4>
+<p>Export run summaries to CSV or JSON.</p>
+<div class="language-bash highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a>llm-answer-watcher<span class="w"> </span><span class="nb">export</span><span class="w"> </span>runs<span class="w"> </span>--output<span class="w"> </span>PATH<span class="w"> </span><span class="o">[</span>OPTIONS<span class="o">]</span>
+</span></code></pre></div>
+<p><strong>Options:</strong>
+*   <code>--output, -o PATH</code> <strong>(Required)</strong>: Output file path. Extension (<code>.csv</code> or <code>.json</code>) determines format.
+*   <code>--db PATH</code>: Path to SQLite database. Default: <code>./output/watcher.db</code>.
+*   <code>--days INTEGER</code>: Include only last N days of data.</p>
 
 
 
