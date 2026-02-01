@@ -1,10 +1,28 @@
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Search, ArrowRight, ArrowLeft } from 'lucide-react';
+import { useState } from 'react';
+import { useAuth } from '../auth/AuthContext';
+import { ConfirmationModal } from '../components/ui/ConfirmationModal';
 
 export default function FAQPage({ theme }) {
   const navigate = useNavigate();
   const location = useLocation();
   const fromLanding = location.state?.from === 'landing';
+  const { user, logout } = useAuth();
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+
+  const handleHomeNavigation = () => {
+    if (user) {
+      setShowLogoutConfirm(true);
+    } else {
+      navigate('/');
+    }
+  };
+
+  const handleLogout = async () => {
+    navigate('/', { replace: true });
+    await logout();
+  };
 
   const handleBack = () => {
     if (fromLanding) {
@@ -48,7 +66,7 @@ export default function FAQPage({ theme }) {
       <nav className={`relative border-b ${theme === 'dark' ? 'border-navy-800/50 bg-navy-900/50' : 'border-slate-200/60 bg-white/50'} backdrop-blur-xl`}>
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-             <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate('/')}>
+             <div className="flex items-center gap-3 cursor-pointer" onClick={handleHomeNavigation}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary-500 to-accent-500 flex items-center justify-center">
                 <Search className="w-5 h-5 text-white" />
               </div>
@@ -60,7 +78,7 @@ export default function FAQPage({ theme }) {
 
             <div className="flex items-center gap-4">
                <button
-                onClick={() => navigate('/')}
+                onClick={handleHomeNavigation}
                 className={`btn-ghost text-sm ${theme === 'dark' ? 'text-navy-300 hover:text-white' : 'text-gray-600 hover:text-gray-900'}`}
               >
                 Back to Home
@@ -104,6 +122,18 @@ export default function FAQPage({ theme }) {
             </a>
          </div>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showLogoutConfirm}
+        onClose={() => setShowLogoutConfirm(false)}
+        onConfirm={handleLogout}
+        title="Leave Dashboard?"
+        message="Are you sure you want to leave? You will be logged out of your current session."
+        confirmLabel="Logout & Leave"
+        theme={theme}
+        variant="warning"
+      />
     </div>
   );
 }
